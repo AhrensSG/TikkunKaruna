@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"name": "Proyectos",
+			"path": "../.."
+		},
+		{
+			"name": "neumáticos-torres",
+			"path": "../../neumáticos-torres"
+		},
+		{
+			"path": "../../../../Downloads/create-service-quotes"
+		}
+	],
+	"settings": {}
+}
