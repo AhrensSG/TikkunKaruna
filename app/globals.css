@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Custom color & font tokens ─────────────────────────── */
+@theme {
+  /* Purple palette – derived from the logo spiral */
+  --color-purple-50:  #faf4fc;
+  --color-purple-100: #f0e6f8;
+  --color-purple-200: #dfc8ef;
+  --color-purple-300: #c4a0e0;
+  --color-purple-400: #a06cc8;
+  --color-purple-500: #8044b0;
+  --color-purple-600: #6b35a0;
+  --color-purple-700: #4e1a82;
+  --color-purple-800: #3d1568;
+  --color-purple-900: #2d0f4e;
+  --color-purple-950: #1a0a2e;
+
+  /* Gold palette – derived from the logo staff & Hebrew text */
+  --color-gold-50:  #fefaec;
+  --color-gold-100: #fbf3d5;
+  --color-gold-200: #f5e4a8;
+  --color-gold-300: #edd070;
+  --color-gold-400: #e2ba48;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #b08818;
+  --color-gold-700: #8a6810;
+  --color-gold-800: #6a500c;
+  --color-gold-900: #4a380a;
+
+  /* Warm cream – background for light sections */
+  --color-cream-50:  #fefdf9;
+  --color-cream-100: #fbf8f0;
+  --color-cream-200: #f5eddc;
 }
 
+/* Font families */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-heading: "Georgia", serif;
+  --font-body:    "Helvetica Neue", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Global base ─────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #fefdf9;
+  color: #1a0a2e;
+  font-family: "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar          { width: 6px; }
+::-webkit-scrollbar-track    { background: #1a0a2e; }
+::-webkit-scrollbar-thumb    { background: #6b35a0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c9a227; }
+
+/* ── Ornamental decorative helpers ──────────────────────── */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #c9a227, #e2ba48, #c9a227);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gold-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #c9a227, transparent);
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #c9a227;
 }
