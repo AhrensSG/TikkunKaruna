@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, LayoutDashboard } from "lucide-react";
 import LogoMark from "@/components/ui/LogoMark";
+import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { href: "/", label: "Inicio" },
@@ -13,6 +14,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -61,13 +63,39 @@ export default function Navbar() {
           </div>
 
           {/* ── Desktop CTAs ── */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-purple-200 hover:text-white text-sm font-body transition-colors duration-200"
-            >
-              Acceder
-            </Link>
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <>
+                <div className="flex items-center gap-2 mr-1">
+                  <div className="w-7 h-7 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-400 font-bold text-xs">
+                    {user.name.charAt(0)}
+                  </div>
+                  <span className="text-purple-200 text-sm font-body">{user.name}</span>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 bg-purple-800 hover:bg-purple-700 text-purple-100 text-sm font-semibold px-4 py-2 rounded-full transition-all duration-200"
+                >
+                  <LayoutDashboard size={14} />
+                  Mi panel
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-purple-200 hover:text-white text-sm font-body transition-colors duration-200"
+                >
+                  Acceder
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-purple-200 hover:text-gold-400 text-sm font-body border border-purple-600 hover:border-gold-500 px-4 py-2 rounded-full transition-all duration-200"
+                >
+                  Registrarse
+                </Link>
+              </>
+            )}
             <Link
               href="/services"
               className="flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-purple-950 text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/30 hover:-translate-y-px"
@@ -105,13 +133,41 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-3 pb-2 flex flex-col gap-3">
-              <Link
-                href="/login"
-                className="text-center text-purple-200 text-sm border border-purple-700 rounded-full py-2.5 hover:border-gold-500 hover:text-gold-400 transition-all font-body"
-                onClick={() => setIsOpen(false)}
-              >
-                Acceder
-              </Link>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 px-4 py-2 text-purple-200 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-400 font-bold text-xs">
+                      {user.name.charAt(0)}
+                    </div>
+                    <span>{user.name}</span>
+                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="text-center flex items-center justify-center gap-2 bg-purple-800 hover:bg-purple-700 text-purple-100 font-semibold rounded-full py-2.5 transition-all text-sm"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <LayoutDashboard size={14} />
+                    Mi panel
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-center text-purple-200 text-sm border border-purple-700 rounded-full py-2.5 hover:border-gold-500 hover:text-gold-400 transition-all font-body"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Acceder
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="text-center text-purple-200 text-sm border border-purple-700 rounded-full py-2.5 hover:border-gold-500 hover:text-gold-400 transition-all font-body"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Registrarse
+                  </Link>
+                </>
+              )}
               <Link
                 href="/services"
                 className="text-center flex items-center justify-center gap-2 bg-gold-500 hover:bg-gold-400 text-purple-950 font-semibold rounded-full py-2.5 transition-all text-sm"
