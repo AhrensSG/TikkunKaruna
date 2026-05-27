@@ -63,8 +63,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true
     },
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google') {
+        try {
+          const pool = (await import('@/lib/db')).default
+          const dbUser = await pool.query(
+            'SELECT id, role FROM users WHERE email = $1',
+            [token.email]
+          )
+          if (dbUser.rows.length > 0) {
+            token.id = dbUser.rows[0].id
+            token.role = dbUser.rows[0].role
+          }
+        } catch (e) {
+          console.error('jwt google lookup error:', e)
+          token.role = token.role || 'user'
+        }
+      } else if (user) {
         token.id = user.id
         token.role = user.role || 'user'
       }
