@@ -42,19 +42,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === 'google') {
-        const pool = (await import('@/lib/db')).default
+        try {
+          const pool = (await import('@/lib/db')).default
 
-        const email = profile?.email
-        if (!email) return false
+          const email = profile?.email
+          if (!email) return false
 
-        const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email])
-        if (exists.rows.length === 0) {
-          await pool.query(
-            `INSERT INTO users (name, email, phone, password, role)
-             VALUES ($1, $2, '', '', 'user')
-             ON CONFLICT (email) DO NOTHING`,
-            [profile?.name || email.split('@')[0], email]
-          )
+          const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email])
+          if (exists.rows.length === 0) {
+            await pool.query(
+              `INSERT INTO users (name, email, phone, password, role)
+               VALUES ($1, $2, '', '', 'user')
+               ON CONFLICT (email) DO NOTHING`,
+              [profile?.name || email.split('@')[0], email]
+            )
+          }
+        } catch (e) {
+          console.error('Google signIn DB error:', e)
         }
       }
       return true

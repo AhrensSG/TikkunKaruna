@@ -32,9 +32,10 @@ export async function POST(req: Request) {
     const user = result.rows[0]
     return NextResponse.json({ user }, { status: 201 })
   } catch (error) {
-    console.error('Register error:', error)
+    const msg = error instanceof Error ? error.message : 'Error desconocido'
+    console.error('Register error:', msg)
     return NextResponse.json(
-      { error: 'Error al registrar el usuario' },
+      { error: `Error al registrar: ${msg}` },
       { status: 500 }
     )
   }
