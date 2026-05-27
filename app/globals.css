@@ -33,10 +33,9 @@
   --color-cream-200: #f5eddc;
 }
 
-/* Font families */
 @theme inline {
-  --font-heading: "Georgia", serif;
-  --font-body:    "Helvetica Neue", sans-serif;
+  --font-heading: var(--font-cormorant-garamond), "Georgia", serif;
+  --font-body:    var(--font-inter), "Helvetica Neue", sans-serif;
 }
 
 /* ── Global base ─────────────────────────────────────────── */
@@ -47,7 +46,7 @@ html {
 body {
   background-color: #fefdf9;
   color: #1a0a2e;
-  font-family: "Helvetica Neue", sans-serif;
+  font-family: var(--font-inter), "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -74,6 +73,7 @@ body {
 }
 
 .section-label {
+  font-family: var(--font-inter), sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.25em;

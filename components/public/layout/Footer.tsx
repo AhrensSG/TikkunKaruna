@@ -23,13 +23,15 @@ function IconFacebook({ size = 16 }: { size?: number }) {
 const footerLinks = {
   navegacion: [
     { href: "/", label: "Inicio" },
-    { href: "/services", label: "Terapias" },
-    { href: "/about", label: "Sobre Inma" },
-    { href: "/contact", label: "Contacto" },
+    { href: "/terapias", label: "Terapias" },
+    { href: "/sobre-nosotros", label: "Sobre Inma" },
+    { href: "/contacto", label: "Contacto" },
   ],
   legal: [
-    { href: "/privacy", label: "Política de privacidad" },
-    { href: "/terms", label: "Términos y condiciones" },
+    { href: "/privacidad", label: "Política de privacidad" },
+    { href: "/terminos", label: "Términos y condiciones" },
+    { href: "/cookies", label: "Política de cookies" },
+    { href: "/aviso-legal", label: "Aviso legal" },
   ],
 };
 

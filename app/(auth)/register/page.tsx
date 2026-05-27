@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Sparkles, Eye, EyeOff } from "lucide-react"
 import LogoMark from "@/components/ui/LogoMark"
 import { useAuth } from "@/context/AuthContext"
+import GoogleSignInButton from "@/components/GoogleSignInButton"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -153,11 +154,20 @@ export default function RegisterPage() {
 
           <p className="text-center text-xs text-gray-500 font-body">
             Al registrarte aceptas nuestros{" "}
-            <Link href="/terms" className="text-purple-700 hover:text-purple-800 underline">términos y condiciones</Link>{" "}
+            <Link href="/terminos" className="text-purple-700 hover:text-purple-800 underline">términos y condiciones</Link>{" "}
             y{" "}
-            <Link href="/privacy" className="text-purple-700 hover:text-purple-800 underline">política de privacidad</Link>.
+            <Link href="/privacidad" className="text-purple-700 hover:text-purple-800 underline">política de privacidad</Link>.
           </p>
         </form>
+
+        <div className="mt-6">
+          <div className="relative flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-body">o regístrate con</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <GoogleSignInButton />
+        </div>
 
         <p className="text-center text-sm text-gray-600 mt-6 font-body">
           ¿Ya tienes cuenta?{" "}

@@ -1,5 +1,8 @@
 "use client"
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/AuthContext'
 import { CalendarDays, Clock, CreditCard, History, Award } from "lucide-react"
 
 const stats = [
@@ -17,6 +20,17 @@ const nextSession = {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      router.replace('/admin')
+    }
+  }, [user, router])
+
+  if (user?.role === 'admin') return null
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}

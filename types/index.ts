@@ -5,7 +5,7 @@ export interface User {
   phone?: string
   avatar?: string
   role: 'user' | 'admin'
-  createdAt: Date
+  created_at: string
 }
 
 export interface Therapy {
@@ -67,3 +67,21 @@ export interface BlockedTime {
   time: string
   reason?: string
 }
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+      name: string
+      email: string
+      role: 'user' | 'admin'
+      image?: string | null
+    }
+  }
+
+  interface User {
+    role: 'user' | 'admin'
+  }
+}
+
+

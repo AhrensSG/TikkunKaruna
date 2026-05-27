@@ -8,9 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 
 const navLinks = [
   { href: "/", label: "Inicio" },
-  { href: "/services", label: "Terapias" },
-  { href: "/about", label: "Sobre Inma" },
-  { href: "/contact", label: "Contacto" },
+  { href: "/terapias", label: "Terapias" },
+  { href: "/sobre-nosotros", label: "Sobre Inma" },
+  { href: "/contacto", label: "Contacto" },
 ];
 
 export default function Navbar() {
@@ -97,7 +97,7 @@ export default function Navbar() {
               </>
             )}
             <Link
-              href="/services"
+              href="/terapias"
               className="flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-purple-950 text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/30 hover:-translate-y-px"
             >
               <Sparkles size={14} />
@@ -169,7 +169,7 @@ export default function Navbar() {
                 </>
               )}
               <Link
-                href="/services"
+                href="/terapias"
                 className="text-center flex items-center justify-center gap-2 bg-gold-500 hover:bg-gold-400 text-purple-950 font-semibold rounded-full py-2.5 transition-all text-sm"
                 onClick={() => setIsOpen(false)}
               >

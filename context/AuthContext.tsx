@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import type { User } from '@/types'
 
 interface AuthContextType {
@@ -13,65 +14,61 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function generateId() {
-  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('tk_user')
-      return stored ? JSON.parse(stored) : null
-    }
-    return null
-  })
-  const [loading] = useState(false)
+  const { data: session, status } = useSession()
+
+  const user: User | null = session?.user
+    ? {
+        id: session.user.id as string,
+        name: session.user.name || '',
+        email: session.user.email || '',
+        role: (session.user as any).role || 'user',
+        created_at: '',
+      }
+    : null
 
   const register = async (data: { name: string; email: string; phone?: string; password: string }) => {
-    const users = JSON.parse(localStorage.getItem('tk_users') || '[]') as (User & { password: string })[]
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
 
-    if (users.find((u) => u.email === data.email)) {
-      throw new Error('Ya existe una cuenta con ese correo electrónico')
+    const json = await res.json()
+
+    if (!res.ok) {
+      throw new Error(json.error || 'Error al registrar')
     }
 
-    const newUser: User & { password: string } = {
-      id: generateId(),
-      name: data.name,
+    const result = await signIn('credentials', {
       email: data.email,
-      phone: data.phone || '',
-      role: 'user',
-      createdAt: new Date(),
       password: data.password,
+      redirect: false,
+    })
+
+    if (result?.error) {
+      throw new Error('Registrado pero error al iniciar sesión')
     }
-
-    users.push(newUser)
-    localStorage.setItem('tk_users', JSON.stringify(users))
-
-    const { password: _, ...safeUser } = newUser
-    localStorage.setItem('tk_user', JSON.stringify(safeUser))
-    setUser(safeUser)
   }
 
   const login = async (email: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem('tk_users') || '[]') as (User & { password: string })[]
-    const found = users.find((u) => u.email === email && u.password === password)
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
 
-    if (!found) {
+    if (result?.error) {
       throw new Error('Correo o contraseña incorrectos')
     }
-
-    const { password: _, ...safeUser } = found
-    localStorage.setItem('tk_user', JSON.stringify(safeUser))
-    setUser(safeUser)
   }
 
   const logout = () => {
-    localStorage.removeItem('tk_user')
-    setUser(null)
+    signOut({ callbackUrl: '/login' })
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading: status === 'loading', login, logout, register }}>
       {children}
     </AuthContext.Provider>
   )

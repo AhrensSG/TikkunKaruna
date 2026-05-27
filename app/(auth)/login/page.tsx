@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
 import LogoMark from "@/components/ui/LogoMark"
 import { useAuth } from "@/context/AuthContext"
+import GoogleSignInButton from "@/components/GoogleSignInButton"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,7 +26,13 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(form.email, form.password)
-      router.push("/dashboard")
+      const sessionRes = await fetch('/api/auth/session')
+      const session = await sessionRes.json()
+      if (session?.user?.role === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión")
     } finally {
@@ -100,6 +107,15 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Iniciar sesión"}
           </button>
         </form>
+
+        <div className="mt-6">
+          <div className="relative flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-body">o continúa con</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <GoogleSignInButton />
+        </div>
 
         <p className="text-center text-sm text-gray-600 mt-6 font-body">
           ¿No tienes cuenta?{" "}
