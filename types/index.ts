@@ -10,13 +10,27 @@ export interface User {
 
 export interface Therapy {
   id: string
-  title: string
+  name: string
+  subtitle: string
   description: string
-  duration: number
-  price: number
-  image?: string
-  requirements?: string
-  isActive: boolean
+  duration_minutes: number
+  price_cents: number
+  is_active: boolean
+  image_url: string
+  category: 'pendulo_hebreo' | 'reiki' | 'combinado'
+  modality: 'distancia' | 'presencial'
+  is_pack: boolean
+  session_count: number
+  prerequisite_id: string | null
+  sort_order: number
+  tag: string
+  video_url: string
+  created_at: string
+}
+
+export interface TherapyWithDetails extends Therapy {
+  prerequisite_name: string | null
+  indications: string[]
 }
 
 export interface Booking {
