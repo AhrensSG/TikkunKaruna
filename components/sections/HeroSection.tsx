@@ -65,7 +65,7 @@ export default function HeroSection() {
 
         {/* Label */}
         <p className="section-label mb-6 tracking-[0.3em]">
-          ✦ Terapias Holísticas Individuales ✦
+          ✦ Péndulo Ebreo y Reiki by Inma ✦
         </p>
 
         {/* Headline */}
@@ -83,8 +83,8 @@ export default function HeroSection() {
         {/* Subtitle */}
         <p className="text-purple-200 text-lg sm:text-xl max-w-2xl leading-relaxed mb-12 font-body font-light">
           Un espacio de bienestar integral donde cada sesión es un paso
-          hacia tu mejor versión. Reserva online, paga con seguridad y
-          recibe acompañamiento personalizado con Inma.
+          hacia tu mejor versión. Cuando la energía fluye en armonía
+          encontramos claridad, equilibrio y paz interior.
         </p>
 
         {/* CTAs */}

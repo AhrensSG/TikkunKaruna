@@ -4,77 +4,43 @@ import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
   Clock, ArrowRight, CalendarCheck,
 } from "lucide-react";
+import pool from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Terapias | TikkunKaruna",
   description:
-    "Explora todas las terapias holísticas individuales disponibles. Reserva tu sesión online de forma rápida y segura.",
+    "Explora todas las terapias holísticas disponibles. Reserva tu sesión online de forma rápida y segura.",
 };
 
-const services = [
-  {
-    Icon: Flower2,
-    name: "Terapia 1",
-    fullDesc:
-      "Descripción completa de la Terapia 1. Aquí puedes explicar en qué consiste, cómo se desarrolla la sesión, qué beneficios aporta y para quién está especialmente indicada. [Pendiente de personalizar]",
-    duration: "60 min",
-    price: "XX €",
-    tag: "Más solicitada",
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-  {
-    Icon: Zap,
-    name: "Terapia 2",
-    fullDesc:
-      "Descripción completa de la Terapia 2. Detalla el método utilizado, el desarrollo de la sesión y los resultados esperados. [Pendiente de personalizar]",
-    duration: "75 min",
-    price: "XX €",
-    tag: null,
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-  {
-    Icon: TreePine,
-    name: "Terapia 3",
-    fullDesc:
-      "Descripción completa de la Terapia 3. Explica el proceso de la terapia, su base teórica y para qué tipo de situaciones o personas está indicada. [Pendiente de personalizar]",
-    duration: "90 min",
-    price: "XX €",
-    tag: "Nueva",
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-  {
-    Icon: Moon,
-    name: "Terapia 4",
-    fullDesc:
-      "Descripción completa de la Terapia 4. Indica qué trabaja esta terapia, cómo se desarrolla y qué puede esperar el cliente después de la sesión. [Pendiente de personalizar]",
-    duration: "60 min",
-    price: "XX €",
-    tag: null,
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-  {
-    Icon: Waves,
-    name: "Terapia 5",
-    fullDesc:
-      "Descripción completa de la Terapia 5. Describe el contexto en que surgió esta terapia y cómo puede ayudar a transformar bloqueos emocionales o físicos. [Pendiente de personalizar]",
-    duration: "90 min",
-    price: "XX €",
-    tag: null,
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-  {
-    Icon: Sun,
-    name: "Terapia 6",
-    fullDesc:
-      "Descripción completa de la Terapia 6. Explica el alcance de esta terapia, qué tipo de trabajo se realiza y qué sensaciones puede experimentar el cliente. [Pendiente de personalizar]",
-    duration: "60 min",
-    price: "XX €",
-    tag: null,
-    beneficios: ["Beneficio 1", "Beneficio 2", "Beneficio 3"],
-  },
-];
+const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
-export default function TerapiasPage() {
+function formatDuration(minutes: number) {
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return m > 0 ? `${h}h ${m} min` : `${h}h`
+  }
+  return `${minutes} min`
+}
+
+export default async function TerapiasPage() {
+  const result = await pool.query(
+    `SELECT id, name, description, duration_minutes, price_cents, image_url
+     FROM therapies WHERE is_active = true
+     ORDER BY created_at DESC`
+  )
+  const therapies = result.rows
+
+  const services = therapies.map((t, i) => ({
+    Icon: icons[i % icons.length],
+    id: t.id,
+    name: t.name,
+    fullDesc: t.description,
+    duration: formatDuration(t.duration_minutes),
+    price: `${(t.price_cents / 100).toFixed(0)} €`,
+    tag: i === 0 ? 'Nueva' : null,
+    image_url: t.image_url,
+  }))
   return (
     <>
       {/* ── Page hero ── */}
@@ -98,60 +64,66 @@ export default function TerapiasPage() {
         </div>
       </section>
 
-      {/* ── Services list ── */}
+      {/* ── Services grid ── */}
       <section className="py-20 bg-cream-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-8">
-            {services.map(({ Icon, name, fullDesc, duration, price, tag, beneficios }, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map(({ Icon, name, fullDesc, duration, price, tag, image_url }) => (
               <div
                 key={name}
-                className={`group grid grid-cols-1 lg:grid-cols-5 gap-8 bg-white border border-purple-100 rounded-3xl p-8 hover:border-gold-200 hover:shadow-xl hover:shadow-purple-100/40 transition-all duration-300`}
+                className="group flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
               >
-                {/* Left: icon + meta */}
-                <div className="lg:col-span-1 flex flex-col items-start gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-purple-50 group-hover:bg-gold-50 flex items-center justify-center transition-colors duration-300">
-                    <Icon size={28} className="text-purple-600 group-hover:text-gold-600 transition-colors duration-300" />
+                {/* Image */}
+                {image_url ? (
+                  <div className="w-full h-44 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image_url}
+                      alt={name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                   </div>
-                  {tag && (
-                    <span className="bg-gold-100 text-gold-700 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full">
-                      {tag}
-                    </span>
-                  )}
-                  <div className="flex items-center gap-1.5 text-purple-500 text-sm font-body">
-                    <Clock size={14} />
-                    {duration}
+                ) : (
+                  <div className="w-full h-44 bg-purple-50 flex items-center justify-center">
+                    <Icon size={40} className="text-purple-300" />
                   </div>
-                  <span className="font-heading text-3xl text-gold-600 font-medium">{price}</span>
-                </div>
+                )}
 
-                {/* Center: description */}
-                <div className="lg:col-span-3">
-                  <h2 className="font-heading text-3xl text-purple-950 mb-3">{name}</h2>
-                  <p className="text-purple-600 leading-relaxed font-body mb-5">{fullDesc}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {beneficios.map((b) => (
-                      <span
-                        key={b}
-                        className="flex items-center gap-1.5 bg-purple-50 text-purple-700 text-xs font-body px-3 py-1.5 rounded-full"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                        {b}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                {/* Tag */}
+                {tag && (
+                  <span className="absolute top-4 right-4 bg-gold-100 text-gold-700 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full z-10">
+                    {tag}
+                  </span>
+                )}
 
-                {/* Right: CTA */}
-                <div className="lg:col-span-1 flex flex-col items-start lg:items-end justify-center gap-3">
+                <div className="flex flex-col flex-1 p-5 pt-4">
+                  {/* Meta row */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1 text-purple-400 text-xs font-body">
+                      <Clock size={12} />
+                      {duration}
+                    </div>
+                    <span className="text-purple-200">·</span>
+                    <span className="font-heading text-lg text-gold-600 font-medium">{price}</span>
+                  </div>
+
+                  {/* Title */}
+                  <h2 className="font-heading text-xl text-purple-950 mb-2 leading-snug">{name}</h2>
+
+                  {/* Description */}
+                  <p className="text-purple-600 text-sm leading-relaxed font-body flex-1 mb-4 line-clamp-3">
+                    {fullDesc}
+                  </p>
+
+                  {/* CTA */}
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-purple-950 font-semibold text-sm px-6 py-3 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/25 hover:-translate-y-px group"
+                    className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300"
                   >
-                    <CalendarCheck size={15} />
-                    Reservar
-                    <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                    <CalendarCheck size={14} />
+                    Reservar sesión
+                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                   </Link>
-                  <p className="text-purple-400 text-xs font-body">Sesión individual</p>
                 </div>
               </div>
             ))}
@@ -160,7 +132,7 @@ export default function TerapiasPage() {
       </section>
 
       {/* ── Bottom note ── */}
-      <section className="py-16 bg-white border-t border-purple-100">
+      <section className="py-14 bg-white border-t border-purple-100">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <p className="text-purple-500 text-sm font-body leading-relaxed">
             ¿No sabes qué terapia elegir?{" "}

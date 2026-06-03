@@ -10,13 +10,15 @@ export interface User {
 
 export interface Therapy {
   id: string
-  title: string
+  name: string
   description: string
-  duration: number
-  price: number
-  image?: string
-  requirements?: string
-  isActive: boolean
+  duration_minutes: number
+  price_cents: number
+  image_url: string
+  video_url: string
+  is_active: boolean
+  requirements?: string[]
+  created_at: string
 }
 
 export interface Booking {
