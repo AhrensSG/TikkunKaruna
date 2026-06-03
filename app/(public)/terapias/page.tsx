@@ -5,7 +5,6 @@ import {
   Clock, ArrowRight, CalendarCheck,
 } from "lucide-react";
 import pool from "@/lib/db";
-import { auth } from "@/lib/auth.config";
 
 export const metadata: Metadata = {
   title: "Terapias | TikkunKaruna",
@@ -25,9 +24,6 @@ function formatDuration(minutes: number) {
 }
 
 export default async function TerapiasPage() {
-  const session = await auth()
-  const bookHref = session?.user ? '/dashboard/book' : '/login'
-
   const result = await pool.query(
     `SELECT id, name, description, duration_minutes, price_cents, image_url
      FROM therapies WHERE is_active = true
@@ -121,7 +117,7 @@ export default async function TerapiasPage() {
 
                   {/* CTA */}
                   <Link
-                    href={bookHref}
+                    href={`/reservar/${t.id}`}
                     className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300"
                   >
                     <CalendarCheck size={14} />
