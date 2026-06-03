@@ -68,7 +68,7 @@ export default async function TerapiasPage() {
       <section className="py-20 bg-cream-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map(({ Icon, name, fullDesc, duration, price, tag, image_url }) => (
+            {services.map(({ Icon, id, name, fullDesc, duration, price, tag, image_url }) => (
               <div
                 key={name}
                 className="group flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
