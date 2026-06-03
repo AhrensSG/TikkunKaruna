@@ -64,6 +64,27 @@ export default function TherapiesPage() {
     }
   }
 
+  const [savingOrder, setSavingOrder] = useState<string | null>(null)
+
+  const handleSortOrder = async (id: string, value: number) => {
+    setSavingOrder(id)
+    try {
+      const res = await fetch(`/api/admin/therapies/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sort_order: value }),
+      })
+      if (res.ok) {
+        setTherapies((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, sort_order: value } : t))
+        )
+      }
+    } catch {
+      // ignore
+    }
+    setSavingOrder(null)
+  }
+
   const handleToggleActive = async (id: string, current: boolean) => {
     try {
       const res = await fetch(`/api/admin/therapies/${id}`, {
@@ -213,6 +234,19 @@ export default function TherapiesPage() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {/* Orden en home */}
+              <div className="flex items-center gap-1 mr-1">
+                <span className="text-xs text-gray-400">Home</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={therapy.sort_order ?? 0}
+                  onChange={(e) => handleSortOrder(therapy.id, parseInt(e.target.value) || 0)}
+                  className="w-12 px-1 py-1 text-xs text-center border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                />
+              </div>
+
               <button
                 onClick={() => handleToggleActive(therapy.id, therapy.is_active)}
                 className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors shrink-0 ${

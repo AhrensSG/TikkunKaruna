@@ -84,15 +84,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   try {
     const { id } = await params
-    const { is_active } = await req.json()
+    const { is_active, sort_order } = await req.json()
 
-    if (typeof is_active !== 'boolean') {
-      return NextResponse.json({ error: 'is_active debe ser booleano' }, { status: 400 })
+    const fields: string[] = []
+    const values: any[] = []
+    let idx = 1
+
+    if (typeof is_active === 'boolean') {
+      fields.push(`is_active = $${idx++}`)
+      values.push(is_active)
+    }
+    if (typeof sort_order === 'number') {
+      fields.push(`sort_order = $${idx++}`)
+      values.push(sort_order)
     }
 
+    if (fields.length === 0) {
+      return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
+    }
+
+    values.push(id)
     const result = await pool.query(
-      'UPDATE therapies SET is_active = $1 WHERE id = $2 RETURNING id, name, is_active',
-      [is_active, id]
+      `UPDATE therapies SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, is_active, sort_order`,
+      values
     )
 
     if (result.rows.length === 0) {

@@ -9,9 +9,9 @@ const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
 export default async function ServicesSection() {
   const result = await pool.query(
-    `SELECT name, description, duration_minutes, price_cents, image_url
-     FROM therapies WHERE is_active = true
-     ORDER BY created_at DESC LIMIT 6`
+    `     SELECT name, description, duration_minutes, price_cents, image_url
+     FROM therapies WHERE is_active = true AND sort_order > 0
+     ORDER BY sort_order ASC, created_at DESC LIMIT 6`
   )
   const therapies = result.rows
 
