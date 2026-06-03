@@ -117,7 +117,7 @@ export default async function TerapiasPage() {
 
                   {/* CTA */}
                   <Link
-                    href={`/reservar/${t.id}`}
+                    href={`/reservar/${id}`}
                     className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300"
                   >
                     <CalendarCheck size={14} />
