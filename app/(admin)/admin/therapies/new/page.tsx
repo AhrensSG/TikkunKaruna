@@ -12,8 +12,8 @@ export default function NewTherapyPage() {
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [duration_minutes, setDurationMinutes] = useState(60)
-  const [price_cents, setPriceCents] = useState(5000)
+  const [duration_minutes, setDurationMinutes] = useState('60')
+  const [price_euros, setPriceEuros] = useState('50')
   const [is_active, setIsActive] = useState(true)
   const [image_url, setImageUrl] = useState('')
   const [video_url, setVideoUrl] = useState('')
@@ -31,8 +31,8 @@ export default function NewTherapyPage() {
       body: JSON.stringify({
         name,
         description,
-        duration_minutes,
-        price_cents,
+        duration_minutes: parseInt(duration_minutes) || 0,
+        price_cents: Math.round((parseFloat(price_euros) || 0) * 100),
         is_active,
         image_url,
         video_url,
@@ -100,7 +100,7 @@ export default function NewTherapyPage() {
               <input
                 type="number"
                 value={duration_minutes}
-                onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                onChange={(e) => setDurationMinutes(e.target.value)}
                 min={15}
                 step={15}
                 required
@@ -108,18 +108,18 @@ export default function NewTherapyPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Precio (céntimos)</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Precio (€)</label>
               <input
                 type="number"
-                value={price_cents}
-                onChange={(e) => setPriceCents(Number(e.target.value))}
+                value={price_euros}
+                onChange={(e) => setPriceEuros(e.target.value)}
                 min={0}
-                step={100}
+                step={0.5}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
               />
               <p className="text-xs text-gray-400 mt-1">
-                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(price_cents / 100)}
+                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(parseFloat(price_euros) || 0)}
               </p>
             </div>
           </div>
