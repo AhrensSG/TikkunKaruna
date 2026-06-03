@@ -64,8 +64,7 @@ export default function TherapiesPage() {
     }
   }
 
-  const handleSortOrder = async (id: string, raw: string) => {
-    const value = raw === '' ? 0 : parseInt(raw) || 0
+  const handleSortOrder = async (id: string, value: number) => {
     setTherapies((prev) =>
       prev.map((t) => (t.id === id ? { ...t, sort_order: value } : t))
     )
@@ -235,12 +234,14 @@ export default function TherapiesPage() {
                   <input
                     type="number"
                     min={0}
-                    max={99}
-                    defaultValue={therapy.sort_order ?? 0}
-                    onBlur={(e) => handleSortOrder(therapy.id, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSortOrder(therapy.id, (e.target as HTMLInputElement).value)
+                    max={6}
+                    value={therapy.sort_order ?? 0}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      const num = raw === '' ? 0 : Math.min(parseInt(raw) || 0, 6)
+                      handleSortOrder(therapy.id, num)
                     }}
+                    onFocus={(e) => e.target.select()}
                     className="w-12 px-1 py-1 text-xs text-center border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none"
                   />
               </div>
