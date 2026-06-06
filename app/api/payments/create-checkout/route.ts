@@ -34,14 +34,19 @@ export async function POST(req: Request) {
 
     const endTime = new Date(startTime.getTime() + therapy.duration_minutes * 60000)
 
-    const bookingResult = await pool.query(
-      `INSERT INTO bookings (user_id, therapy_id, start_time, end_time, status)
-       VALUES ($1, $2, $3, $4, 'pending')
-       RETURNING id`,
-      [session.user.id, therapyId, startTime.toISOString(), endTime.toISOString()]
+    const BUFFER_MINUTES = 30
+    const overlap = await pool.query(
+      `SELECT id FROM bookings
+       WHERE status = 'confirmed'
+         AND tstzrange(start_time, end_time) &&
+             tstzrange($1::timestamptz - interval '${BUFFER_MINUTES} minutes',
+                       $2::timestamptz + interval '${BUFFER_MINUTES} minutes')`,
+      [startTime.toISOString(), endTime.toISOString()]
     )
 
-    const booking = bookingResult.rows[0]
+    if (overlap.rows.length > 0) {
+      return NextResponse.json({ error: 'Ese horario ya está reservado. Elegí otro.' }, { status: 409 })
+    }
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -57,10 +62,13 @@ export async function POST(req: Request) {
         },
       ],
       metadata: {
-        booking_id: booking.id,
+        therapy_id: therapyId,
         user_id: session.user.id,
+        date,
+        time,
+        duration_minutes: String(therapy.duration_minutes),
       },
-      success_url: `${process.env.NEXT_PUBLIC_API_URL}/dashboard/history?success=true`,
+      success_url: `${process.env.NEXT_PUBLIC_API_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_API_URL}/dashboard/book?canceled=true`,
     })
 

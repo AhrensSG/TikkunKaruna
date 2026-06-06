@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import {
-  Sparkles, Clock, Euro, ArrowRight, Check, Loader2,
-  ArrowLeft, ShieldCheck,
+  Sparkles, Clock, ArrowRight, Check, Loader2,
+  ArrowLeft, ShieldCheck, Video, ListChecks,
 } from "lucide-react"
+import Calendar from "@/components/Calendar"
 
 interface Therapy {
   id: string
@@ -16,18 +17,20 @@ interface Therapy {
   duration_minutes: number
   price_cents: number
   image_url: string
+  video_url: string
+  requirements: string[]
 }
 
-const timeSlots = [
-  "10:00", "11:00", "12:00", "16:00", "17:00", "18:00", "19:00",
-]
 
-const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
 
 export default function ReservarPage() {
   const { id } = useParams<{ id: string }>()
   const { data: session, status } = useSession()
   const router = useRouter()
+
+  const today = new Date()
+  const [calYear, setCalYear] = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth() + 1)
 
   const [therapy, setTherapy] = useState<Therapy | null>(null)
   const [loading, setLoading] = useState(true)
@@ -36,6 +39,8 @@ export default function ReservarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [slotsLoading, setSlotsLoading] = useState(false)
 
   useEffect(() => {
     fetch("/api/therapies")
@@ -47,6 +52,20 @@ export default function ReservarPage() {
       })
       .catch(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!selectedDate || !id) return
+    setSlotsLoading(true)
+    setSelectedTime(null)
+
+    fetch(`/api/availability?date=${selectedDate}&therapyId=${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setAvailableSlots(data.slots || [])
+        setSlotsLoading(false)
+      })
+      .catch(() => setSlotsLoading(false))
+  }, [selectedDate, id])
 
   const handlePay = async () => {
     if (status === "unauthenticated") {
@@ -64,7 +83,7 @@ export default function ReservarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           therapyId: therapy.id,
-          date: `2026-06-${selectedDate.padStart(2, "0")}`,
+          date: selectedDate,
           time: selectedTime,
         }),
       })
@@ -103,8 +122,8 @@ export default function ReservarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white pt-24">
+      <div className="max-w-5xl mx-auto px-4">
         {/* Back */}
         <Link
           href="/terapias"
@@ -147,9 +166,13 @@ export default function ReservarPage() {
                   <img src={therapy.image_url} alt={therapy.name} className="w-full h-full object-cover" />
                 </div>
               )}
-              <div className="p-6">
-                <h1 className="font-heading text-2xl text-purple-950 mb-2">{therapy.name}</h1>
-                <p className="text-purple-600 text-sm leading-relaxed mb-5">{therapy.description}</p>
+              <div className="p-6 space-y-5">
+                <div>
+                  <h1 className="font-heading text-2xl text-purple-950 mb-3">{therapy.name}</h1>
+                  <p className="text-purple-700 text-sm leading-relaxed">{therapy.description}</p>
+                </div>
+
+                {/* Meta: duration + price */}
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-1.5 text-purple-500">
                     <Clock size={15} />
@@ -162,6 +185,42 @@ export default function ReservarPage() {
                     {therapy.price_cents / 100} €
                   </span>
                 </div>
+
+                {/* Requisitos / condiciones */}
+                {therapy.requirements && therapy.requirements.length > 0 && (
+                  <div>
+                    <h3 className="flex items-center gap-1.5 text-sm font-semibold text-purple-900 mb-2">
+                      <ListChecks size={15} className="text-gold-500" />
+                      Requisitos / Condiciones
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {therapy.requirements.map((req, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-purple-600">
+                          <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-gold-400 flex-shrink-0" />
+                          {req}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Video */}
+                {therapy.video_url && (
+                  <div>
+                    <h3 className="flex items-center gap-1.5 text-sm font-semibold text-purple-900 mb-2">
+                      <Video size={15} className="text-gold-500" />
+                      Video explicativo
+                    </h3>
+                    <div className="aspect-video rounded-xl overflow-hidden bg-purple-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={therapy.video_url}
+                        alt={`Video de ${therapy.name}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -179,37 +238,39 @@ export default function ReservarPage() {
                   {/* Calendar */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">Día</h3>
-                    <div className="grid grid-cols-6 gap-2">
-                      {days.map((day) => (
-                        <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
-                          {day}
-                        </div>
-                      ))}
-                      {Array.from({ length: 30 }).map((_, i) => {
-                        const date = i + 1
-                        const isSelected = selectedDate === String(date)
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => setSelectedDate(String(date))}
-                            className={`text-center text-sm py-2 rounded-lg transition-colors ${
-                              isSelected
-                                ? "bg-purple-600 text-white"
-                                : "hover:bg-purple-50 text-gray-700"
-                            }`}
-                          >
-                            {date}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <Calendar
+                      year={calYear}
+                      month={calMonth}
+                      selectedDate={selectedDate}
+                      onSelect={(date) => setSelectedDate(date)}
+                      onPrevMonth={() => {
+                        if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12) }
+                        else setCalMonth(calMonth - 1)
+                      }}
+                      onNextMonth={() => {
+                        if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1) }
+                        else setCalMonth(calMonth + 1)
+                      }}
+                    />
                   </div>
 
                   {/* Time slots */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Horario</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                      Horario
+                      {slotsLoading && <span className="text-gray-400 font-normal text-xs ml-2">Cargando...</span>}
+                    </h3>
                     <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.map((time) => (
+                      {!selectedDate && (
+                        <p className="text-gray-400 text-sm col-span-2 text-center py-6">Selecciona una fecha primero</p>
+                      )}
+                      {slotsLoading && (
+                        <p className="text-gray-400 text-sm col-span-2 text-center py-6">Cargando horarios...</p>
+                      )}
+                      {selectedDate && !slotsLoading && availableSlots.length === 0 && (
+                        <p className="text-gray-400 text-sm col-span-2 text-center py-6">No hay horarios disponibles para esta fecha</p>
+                      )}
+                      {selectedDate && !slotsLoading && availableSlots.map((time) => (
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
@@ -254,7 +315,9 @@ export default function ReservarPage() {
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-500">Fecha</span>
-                    <span className="font-medium text-gray-900">Junio {selectedDate}, 2026</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-500">Horario</span>
@@ -262,7 +325,11 @@ export default function ReservarPage() {
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-500">Duración</span>
-                    <span className="font-medium text-gray-900">{therapy.duration_minutes} min</span>
+                    <span className="font-medium text-gray-900">
+                      {therapy.duration_minutes >= 60
+                        ? `${Math.floor(therapy.duration_minutes / 60)}h ${therapy.duration_minutes % 60 || ""}`
+                        : `${therapy.duration_minutes} min`}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2">
                     <span className="text-gray-500">Total</span>

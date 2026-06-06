@@ -9,7 +9,7 @@ const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
 export default async function ServicesSection() {
   const result = await pool.query(
-    `     SELECT name, description, duration_minutes, price_cents, image_url
+    `     SELECT id, name, description, duration_minutes, price_cents, image_url
      FROM therapies WHERE is_active = true AND sort_order > 0
      ORDER BY sort_order ASC, created_at DESC LIMIT 6`
   )
@@ -17,6 +17,7 @@ export default async function ServicesSection() {
 
   const services = therapies.map((t, i) => ({
     Icon: icons[i % icons.length],
+    id: t.id,
     name: t.name,
     shortDesc: t.description.length > 100
       ? t.description.substring(0, 100) + '...'
@@ -49,7 +50,7 @@ export default async function ServicesSection() {
 
         {/* Service cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {services.map(({ Icon, name, shortDesc, duration, price, tag, image_url }) => (
+          {services.map(({ Icon, id, name, shortDesc, duration, price, tag, image_url }) => (
             <div
               key={name}
               className="group relative flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
@@ -95,7 +96,7 @@ export default async function ServicesSection() {
 
                 {/* CTA */}
                 <Link
-                  href="/terapias"
+                  href={`/reservar/${id}`}
                   className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300 group-hover:shadow-md"
                 >
                   Reservar sesión

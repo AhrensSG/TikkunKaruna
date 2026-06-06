@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Mail, MessageCircle, MapPin, Clock } from "lucide-react";
+import { Mail, MessageCircle, Clock } from "lucide-react";
+import ContactForm from "./ContactForm";
 
 function IconInstagram({ size = 20 }: { size?: number }) {
   return (
@@ -86,89 +87,7 @@ export default function ContactoPage() {
               </h2>
               <div className="w-10 h-px bg-gold-500 mb-8" />
 
-              <form className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label
-                      htmlFor="nombre"
-                      className="block text-purple-700 text-sm font-body font-medium mb-1.5"
-                    >
-                      Nombre *
-                    </label>
-                    <input
-                      id="nombre"
-                      type="text"
-                      placeholder="Tu nombre"
-                      className="w-full border border-purple-200 focus:border-gold-400 focus:ring-2 focus:ring-gold-400/20 rounded-xl px-4 py-3 text-purple-900 placeholder-purple-300 text-sm font-body outline-none transition-all bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-purple-700 text-sm font-body font-medium mb-1.5"
-                    >
-                      Email *
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      className="w-full border border-purple-200 focus:border-gold-400 focus:ring-2 focus:ring-gold-400/20 rounded-xl px-4 py-3 text-purple-900 placeholder-purple-300 text-sm font-body outline-none transition-all bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="asunto"
-                    className="block text-purple-700 text-sm font-body font-medium mb-1.5"
-                  >
-                    Asunto
-                  </label>
-                  <input
-                    id="asunto"
-                    type="text"
-                    placeholder="¿En qué podemos ayudarte?"
-                    className="w-full border border-purple-200 focus:border-gold-400 focus:ring-2 focus:ring-gold-400/20 rounded-xl px-4 py-3 text-purple-900 placeholder-purple-300 text-sm font-body outline-none transition-all bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="mensaje"
-                    className="block text-purple-700 text-sm font-body font-medium mb-1.5"
-                  >
-                    Mensaje *
-                  </label>
-                  <textarea
-                    id="mensaje"
-                    rows={5}
-                    placeholder="Cuéntanos cómo podemos ayudarte..."
-                    className="w-full border border-purple-200 focus:border-gold-400 focus:ring-2 focus:ring-gold-400/20 rounded-xl px-4 py-3 text-purple-900 placeholder-purple-300 text-sm font-body outline-none transition-all bg-white resize-none"
-                  />
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <input
-                    id="privacidad"
-                    type="checkbox"
-                    className="mt-0.5 accent-gold-500"
-                  />
-                  <label htmlFor="privacidad" className="text-purple-500 text-xs font-body leading-relaxed">
-                    He leído y acepto la{" "}
-                    <a href="/privacidad" className="text-gold-600 hover:underline">
-                      Política de privacidad
-                    </a>
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gold-500 hover:bg-gold-400 text-purple-950 font-semibold py-3.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/25 text-sm"
-                >
-                  Enviar mensaje
-                </button>
-              </form>
+              <ContactForm />
             </div>
 
             {/* Contact info */}

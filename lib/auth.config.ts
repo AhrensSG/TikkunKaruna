@@ -63,17 +63,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
+      const pool = (await import('@/lib/db')).default
+
+      if (trigger === 'update' && token.id) {
+        const dbUser = await pool.query(
+          'SELECT image FROM users WHERE id = $1',
+          [token.id]
+        )
+        if (dbUser.rows.length > 0) {
+          token.image = dbUser.rows[0].image
+        }
+      }
+
       if (account?.provider === 'google') {
         try {
-          const pool = (await import('@/lib/db')).default
           const dbUser = await pool.query(
-            'SELECT id, role FROM users WHERE email = $1',
+            'SELECT id, role, image FROM users WHERE email = $1',
             [token.email]
           )
           if (dbUser.rows.length > 0) {
             token.id = dbUser.rows[0].id
             token.role = dbUser.rows[0].role
+            token.image = dbUser.rows[0].image
           }
         } catch (e) {
           console.error('jwt google lookup error:', e)
@@ -82,6 +94,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       } else if (user) {
         token.id = user.id
         token.role = user.role || 'user'
+        try {
+          const dbUser = await pool.query(
+            'SELECT image FROM users WHERE id = $1',
+            [user.id]
+          )
+          if (dbUser.rows.length > 0) {
+            token.image = dbUser.rows[0].image
+          }
+        } catch (e) {
+          console.error('jwt image lookup error:', e)
+        }
       }
       return token
     },
@@ -89,6 +112,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string
         ;(session.user as any).role = token.role
+        session.user.image = (token.image as string) || null
       }
       return session
     },

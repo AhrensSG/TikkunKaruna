@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Sparkles, Clock, Euro, ArrowRight, Check, Loader2 } from "lucide-react"
+import Calendar from "@/components/Calendar"
 
 interface Therapy {
   id: string
@@ -13,11 +14,7 @@ interface Therapy {
   image_url: string
 }
 
-const timeSlots = [
-  "10:00", "11:00", "12:00", "16:00", "17:00", "18:00", "19:00",
-]
 
-const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
 
 export default function BookPage() {
   const router = useRouter()
@@ -26,10 +23,16 @@ export default function BookPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
+  const today = new Date()
+  const [calYear, setCalYear] = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth() + 1)
+
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedTherapy, setSelectedTherapy] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [slotsLoading, setSlotsLoading] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("canceled") === "true") {
@@ -50,6 +53,23 @@ export default function BookPage() {
       .catch(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!selectedDate || !selectedTherapy) return
+    const therapy = therapies.find((t) => t.id === selectedTherapy)
+    if (!therapy) return
+
+    setSlotsLoading(true)
+    setSelectedTime(null)
+
+    fetch(`/api/availability?date=${selectedDate}&therapyId=${selectedTherapy}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setAvailableSlots(data.slots || [])
+        setSlotsLoading(false)
+      })
+      .catch(() => setSlotsLoading(false))
+  }, [selectedDate, selectedTherapy, therapies])
+
   const therapy = therapies.find((t) => t.id === selectedTherapy)
 
   const handleNext = () => {
@@ -67,7 +87,7 @@ export default function BookPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           therapyId: therapy.id,
-          date: `2026-06-${selectedDate.padStart(2, "0")}`,
+          date: selectedDate,
           time: selectedTime,
         }),
       })
@@ -163,36 +183,35 @@ export default function BookPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Selecciona un día</h3>
-            <div className="grid grid-cols-6 gap-2">
-              {days.map((day) => (
-                <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
-                  {day}
-                </div>
-              ))}
-              {Array.from({ length: 30 }).map((_, i) => {
-                const date = i + 1
-                const isSelected = selectedDate === String(date)
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDate(String(date))}
-                    className={`text-center text-sm py-2 rounded-lg transition-colors ${
-                      isSelected
-                        ? "bg-purple-600 text-white"
-                        : "hover:bg-purple-50 text-gray-700"
-                    }`}
-                  >
-                    {date}
-                  </button>
-                )
-              })}
-            </div>
+            <Calendar
+              year={calYear}
+              month={calMonth}
+              selectedDate={selectedDate}
+              onSelect={(date) => setSelectedDate(date)}
+              onPrevMonth={() => {
+                if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12) }
+                else setCalMonth(calMonth - 1)
+              }}
+              onNextMonth={() => {
+                if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1) }
+                else setCalMonth(calMonth + 1)
+              }}
+            />
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Selecciona un horario</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Horario</h3>
             <div className="grid grid-cols-3 gap-2">
-              {timeSlots.map((time) => (
+              {!selectedDate && (
+                <p className="text-gray-400 text-sm col-span-3 text-center py-6">Selecciona una fecha primero</p>
+              )}
+              {slotsLoading && (
+                <p className="text-gray-400 text-sm col-span-3 text-center py-6">Cargando horarios...</p>
+              )}
+              {selectedDate && !slotsLoading && availableSlots.length === 0 && (
+                <p className="text-gray-400 text-sm col-span-3 text-center py-6">No hay horarios disponibles para esta fecha</p>
+              )}
+              {selectedDate && !slotsLoading && availableSlots.map((time) => (
                 <button
                   key={time}
                   onClick={() => setSelectedTime(time)}
@@ -222,7 +241,9 @@ export default function BookPage() {
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Fecha</span>
-              <span className="font-medium text-gray-900">Junio {selectedDate}, 2026</span>
+              <span className="font-medium text-gray-900">
+                {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : ""}
+              </span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Horario</span>

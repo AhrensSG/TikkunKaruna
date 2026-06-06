@@ -1,13 +1,59 @@
 "use client"
 
-const payments = [
-  { id: "ch_1", therapy: "Reiki", date: "10 jun 2026", amount: "50 €", method: "Visa ···· 4242", status: "Pagado" },
-  { id: "ch_2", therapy: "Sanación Emocional", date: "3 jun 2026", amount: "65 €", method: "Visa ···· 4242", status: "Pagado" },
-  { id: "ch_3", therapy: "Meditación Guiada", date: "25 may 2026", amount: "40 €", method: "Visa ···· 4242", status: "Pagado" },
-  { id: "ch_4", therapy: "Terapia Energética", date: "8 may 2026", amount: "55 €", method: "Mastercard ···· 1234", status: "Pagado" },
-]
+import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
+
+interface Payment {
+  id: string
+  amount_cents: number
+  currency: string
+  status: string
+  created_at: string
+  stripe_payment_id: string
+  therapy_name: string
+}
+
+const statusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  succeeded: "Pagado",
+  failed: "Fallido",
+  refunded: "Reembolsado",
+}
+
+const statusColor: Record<string, string> = {
+  Pagado: "text-green-700 bg-green-100",
+  Pendiente: "text-yellow-700 bg-yellow-100",
+  Fallido: "text-red-700 bg-red-100",
+  Reembolsado: "text-blue-700 bg-blue-100",
+}
+
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }).replace(".", "")
+}
 
 export default function PaymentsPage() {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/payments/history")
+      .then((r) => r.json())
+      .then((data) => {
+        setPayments(data.payments || [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-purple-600" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
@@ -15,21 +61,7 @@ export default function PaymentsPage() {
         <p className="text-gray-500 text-sm mt-1">Todos tus pagos realizados a través de la plataforma.</p>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">4</p>
-          <p className="text-xs text-gray-500 mt-1">Pagos realizados</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-green-700">210 €</p>
-          <p className="text-xs text-gray-500 mt-1">Total pagado</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">0 €</p>
-          <p className="text-xs text-gray-500 mt-1">Pendiente</p>
-        </div>
-      </div>
+
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -39,35 +71,41 @@ export default function PaymentsPage() {
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Terapia</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Fecha</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Método</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Estado</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Importe</th>
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.therapy}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.date}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.method}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
-                      {p.status}
-                    </span>
+              {payments.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center text-gray-400 text-sm">
+                    Aún no tienes pagos registrados.
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">{p.amount}</td>
                 </tr>
-              ))}
+              )}
+              {payments.map((p) => {
+                const label = statusLabels[p.status] || p.status
+                return (
+                  <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{p.therapy_name}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatDate(p.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[label] || ""}`}>
+                        {label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900">
+                      {(Number(p.amount_cents) / 100).toFixed(2)} €
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-        Todos los pagos se procesan de forma segura a través de{" "}
-        <strong>Stripe</strong>. Los reembolsos se gestionan desde el panel de administración.
-      </div>
+
     </div>
   )
 }

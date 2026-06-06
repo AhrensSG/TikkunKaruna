@@ -74,17 +74,13 @@ export default function SobreNosotrosPage() {
             {/* Image */}
             <div className="relative">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-purple-100 to-gold-100/30 -z-10" />
-              <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 to-purple-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-6 text-center px-8">
+              <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 via-purple-900 to-purple-950 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-center px-8">
                   <LogoMark size="lg" />
-                  <p className="font-heading text-2xl text-white/60 font-light italic">
-                    &ldquo;Fotografía de Inma&rdquo;
-                  </p>
-                  <p className="text-purple-400 text-xs font-body tracking-wide">
-                    Imagen pendiente de añadir
-                  </p>
+                  <p className="font-heading text-4xl text-gold-400 font-medium mt-4">Inma</p>
+                  <p className="text-purple-300 text-sm font-body">Terapeuta Holística</p>
                 </div>
-                <div className="absolute bottom-6 right-6 w-16 h-16 rounded-full border border-gold-500/30" />
+                <div className="absolute bottom-6 right-6 w-24 h-24 rounded-full border border-gold-500/20" />
               </div>
               <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl shadow-purple-100/60 px-6 py-4 border border-purple-100">
                 <p className="section-label mb-1">Terapeuta holística</p>
@@ -104,21 +100,36 @@ export default function SobreNosotrosPage() {
 
               <div className="space-y-4 text-purple-700 leading-relaxed font-body mb-8">
                 <p>
-                  Hola, soy Inma. Mi camino hacia las terapias holísticas nació
-                  de una búsqueda personal profunda: la necesidad de encontrar
-                  herramientas que trabajaran el ser humano en su totalidad,
-                  más allá del síntoma. [Texto pendiente de personalizar]
+                  Hola, soy Inma. Mi camino hacia las terapias holísticas nació mucho antes de que
+                  conociera palabras como Reiki, energía o bioreprogramación. Desde niña percibía la
+                  vida de una forma diferente. Sentía emociones, ambientes y presencias sutiles que
+                  para mí eran naturales, pero que no siempre eran comprendidas por quienes me rodeaban.
                 </p>
                 <p>
-                  A lo largo de los años he integrado diversas disciplinas que
-                  confluyen en un método propio, amoroso y respetuoso, siempre
-                  orientado a acompañar a cada persona en su proceso único de
-                  transformación. [Texto pendiente de personalizar]
+                  Durante muchos años pensé que había algo extraño en mí. Crecí intentando encajar,
+                  cuestionando constantemente lo que sentía y tratando de ignorar una sensibilidad que
+                  parecía no tener explicación. Esa lucha interna me acompañó especialmente durante la
+                  adolescencia, una etapa en la que me sentí incomprendida y desconectada de quien
+                  realmente era.
                 </p>
                 <p>
-                  TikkunKaruna —que en hebreo y sánscrito evoca la sanación y
-                  la compasión— es mucho más que un proyecto profesional: es
-                  la materialización de una misión de vida. [Texto pendiente de personalizar]
+                  Con el tiempo comprendí que aquello que había intentado esconder no era un problema,
+                  sino una capacidad que necesitaba entender. Comencé una búsqueda profunda para
+                  descubrir qué era aquello que percibía, estudiando distintas disciplinas relacionadas
+                  con la energía, la conciencia y el bienestar integral.
+                </p>
+                <p>
+                  A lo largo de los años he integrado diversas enseñanzas y experiencias que confluyen
+                  en un método propio, cercano y respetuoso, siempre orientado a acompañar a cada
+                  persona en su proceso único de transformación. Mi propósito no es decirle a nadie
+                  qué debe creer, sino ofrecer un espacio seguro donde pueda escucharse, comprenderse
+                  y reconectar consigo mismo.
+                </p>
+                <p>
+                  TikkunKaruna —que en hebreo y sánscrito evoca la sanación y la compasión— es mucho
+                  más que un proyecto profesional: es la materialización de una misión de vida. El
+                  resultado de un camino que comenzó con una niña que se sentía diferente y que, con
+                  el tiempo, descubrió que precisamente en esa diferencia se encontraba su mayor regalo.
                 </p>
               </div>
 

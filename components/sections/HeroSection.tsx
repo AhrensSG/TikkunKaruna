@@ -65,7 +65,7 @@ export default function HeroSection() {
 
         {/* Label */}
         <p className="section-label mb-6 tracking-[0.3em]">
-          ✦ Péndulo Ebreo y Reiki by Inma ✦
+          ✦ Péndulo Hebreo y Reiki by Inma ✦
         </p>
 
         {/* Headline */}

@@ -8,17 +8,18 @@ import {
   CalendarDays,
   Users,
   FileText,
+  CalendarCheck,
   LogOut,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 const sidebarLinks = [
   { href: '/admin', label: 'Panel', icon: LayoutDashboard },
+  { href: '/admin/bookings', label: 'Reservas', icon: CalendarCheck },
   { href: '/admin/therapies', label: 'Terapias', icon: Sparkles },
   { href: '/admin/schedule', label: 'Horarios', icon: CalendarDays },
   { href: '/admin/users', label: 'Usuarios', icon: Users },
   { href: '/admin/invoices', label: 'Facturación', icon: FileText },
-
 ]
 
 export default function AdminSidebar() {

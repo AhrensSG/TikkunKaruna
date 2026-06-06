@@ -39,9 +39,14 @@ export default function UserSidebar() {
         {/* User info */}
         <div className="p-5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-sm">
-              {user?.name?.charAt(0) || "U"}
-            </div>
+            {user?.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.image} alt="" className="w-9 h-9 rounded-full object-cover" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-sm">
+                {user?.name?.charAt(0) || "U"}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">{user?.name || "Usuario"}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email || ""}</p>
