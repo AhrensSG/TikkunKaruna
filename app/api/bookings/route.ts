@@ -19,11 +19,12 @@ export async function GET() {
        t.name AS therapy_name,
        t.price_cents,
        COALESCE(p.amount_cents, t.price_cents) AS amount_cents,
-       p.status AS payment_status
+       p.status AS payment_status,
+       b.admin_notes
      FROM bookings b
      JOIN therapies t ON t.id = b.therapy_id
      LEFT JOIN payments p ON p.booking_id = b.id
-     WHERE b.user_id = $1 AND b.status = 'confirmed'
+     WHERE b.user_id = $1
      ORDER BY b.start_time DESC`,
     [session.user.id]
   )

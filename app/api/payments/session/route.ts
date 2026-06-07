@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
 import pool from '@/lib/db'
-import { sendEmail } from '@/emails'
+import { sendEmail, notifyAdmin, adminNewBookingHtml } from '@/emails'
+import { bookingConfirmationHtml } from '@/emails/templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,10 +11,10 @@ async function nextInvoiceNumber(): Promise<string> {
     "SELECT invoice_number FROM invoices ORDER BY created_at DESC LIMIT 1"
   )
   const last = rows[0]?.invoice_number
-  if (!last) return "INV-2024-0001"
-  const num = parseInt(last.replace(/^INV-\d+-/, ""), 10) || 0
+  if (!last) return `FAC-${new Date().getFullYear()}-0001`
+  const num = parseInt(last.replace(/^FAC-\d+-/, ""), 10) || 0
   const year = new Date().getFullYear()
-  return `INV-${year}-${String(num + 1).padStart(4, "0")}`
+  return `FAC-${year}-${String(num + 1).padStart(4, "0")}`
 }
 
 export async function GET(req: Request) {
@@ -114,25 +115,30 @@ export async function GET(req: Request) {
   )
   if (userRows.length > 0) {
     const user = userRows[0]
+    const { rows: reqs } = await pool.query(
+      `SELECT description FROM therapy_requirements WHERE therapy_id = $1`,
+      [therapyId]
+    )
     const dateStr = startTime.toLocaleDateString("es-ES", {
       day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
     })
     await sendEmail(
       user.email,
       `✅ Reserva confirmada — ${therapy.name}`,
-      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-        <h2 style="color:#4a1a5e;">¡Reserva confirmada!</h2>
-        <p>Hola <strong>${user.name}</strong>,</p>
-        <p>Tu sesión ha sido confirmada. Aquí tienes los detalles:</p>
-        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-          <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Terapia</td><td style="padding:8px 12px;">${therapy.name}</td></tr>
-          <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Fecha y hora</td><td style="padding:8px 12px;">${dateStr}</td></tr>
-          <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Factura</td><td style="padding:8px 12px;">${invoiceNumber}</td></tr>
-        </table>
-        <p style="color:#666;">Gracias por confiar en TikkunKaruna.</p>
-        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-        <p style="color:#999;font-size:12px;">TikkunKaruna — Terapias Holísticas</p>
-      </div>`
+      bookingConfirmationHtml({
+        userName: user.name,
+        userEmail: user.email,
+        therapyName: therapy.name,
+        therapyDescription: therapy.description || '',
+        durationMinutes: therapy.duration_minutes,
+        dateStr,
+        invoiceNumber,
+        requirements: reqs.map((r: any) => r.description),
+      })
+    )
+    notifyAdmin(
+      `📅 Nueva reserva: ${user.name} — ${therapy.name}`,
+      adminNewBookingHtml(user.name, user.email, therapy.name, dateStr)
     )
   }
 

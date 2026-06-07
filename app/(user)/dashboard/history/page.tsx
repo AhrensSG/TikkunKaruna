@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, MessageSquare } from "lucide-react"
 
 interface Booking {
   id: string
@@ -12,6 +12,7 @@ interface Booking {
   price_cents: number
   amount_cents: number
   payment_status: string
+  admin_notes: string | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -41,6 +42,7 @@ function formatTime(iso: string) {
 export default function HistoryPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewNotes, setViewNotes] = useState<{ therapy: string; notes: string } | null>(null)
 
   useEffect(() => {
     fetch("/api/bookings")
@@ -53,8 +55,8 @@ export default function HistoryPage() {
   }, [])
 
   const now = new Date()
-  const completed = bookings.filter((b) => b.status === "completed" || b.status === "confirmed")
-  const pending = bookings.filter((b) => new Date(b.start_time) > now)
+  const completed = bookings.filter((b) => b.status === "completed")
+  const upcoming = bookings.filter((b) => new Date(b.start_time) > now && b.status !== "cancelled")
   const cancelled = bookings.filter((b) => b.status === "cancelled")
 
   if (loading) {
@@ -79,8 +81,8 @@ export default function HistoryPage() {
           <p className="text-xs text-gray-500 mt-1">Sesiones {completed.length === 1 ? "completada" : "completadas"}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{pending.length}</p>
-          <p className="text-xs text-gray-500 mt-1">{pending.length === 1 ? "Pendiente" : "Pendientes"}</p>
+          <p className="text-2xl font-bold text-gray-900">{upcoming.length}</p>
+          <p className="text-xs text-gray-500 mt-1">{upcoming.length === 1 ? "Próxima" : "Próximas"}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{cancelled.length}</p>
@@ -113,7 +115,20 @@ export default function HistoryPage() {
                 const label = statusLabels[b.status] || b.status
                 return (
                   <tr key={b.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{b.therapy_name}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span>{b.therapy_name}</span>
+                        {b.status === "completed" && b.admin_notes && (
+                          <button
+                            onClick={() => setViewNotes({ therapy: b.therapy_name, notes: b.admin_notes! })}
+                            className="text-purple-500 hover:text-purple-700"
+                            title="Ver mensaje de Inma"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{formatDate(b.start_time)}</td>
                     <td className="px-4 py-3 text-gray-600">{formatTime(b.start_time)}</td>
                     <td className="px-4 py-3">
@@ -131,6 +146,30 @@ export default function HistoryPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal: Mensaje de Inma */}
+      {viewNotes && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare size={18} className="text-purple-600" />
+              <h2 className="text-lg font-bold text-gray-900">Mensaje de Inma</h2>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">Para tu sesión de {viewNotes.therapy}</p>
+            <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+              {viewNotes.notes}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setViewNotes(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
+import { notifyAdmin, adminNewUserHtml } from '@/emails'
 
 export async function POST(req: Request) {
   try {
@@ -30,6 +31,10 @@ export async function POST(req: Request) {
     )
 
     const user = result.rows[0]
+    notifyAdmin(
+      `👤 Nuevo registro: ${user.name}`,
+      adminNewUserHtml(user.name, user.email)
+    )
     return NextResponse.json({ user }, { status: 201 })
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Error desconocido'

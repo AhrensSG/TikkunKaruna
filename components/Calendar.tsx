@@ -12,13 +12,14 @@ interface CalendarProps {
   onSelect: (date: string) => void
   onPrevMonth: () => void
   onNextMonth: () => void
+  availableDates?: string[]
 }
 
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
 }
 
-export default function Calendar({ year, month, selectedDate, onSelect, onPrevMonth, onNextMonth }: CalendarProps) {
+export default function Calendar({ year, month, selectedDate, onSelect, onPrevMonth, onNextMonth, availableDates = [] }: CalendarProps) {
   const days = useMemo(() => {
     const first = new Date(year, month - 1, 1)
     const last = new Date(year, month, 0)
@@ -71,6 +72,7 @@ export default function Calendar({ year, month, selectedDate, onSelect, onPrevMo
           const isSelected = selectedDate === dateStr
           const isPast = dateStr < today && dateStr !== selectedDate
           const isToday = dateStr === today
+          const isAvailable = availableDates?.includes(dateStr)
 
           return (
             <button
@@ -78,7 +80,7 @@ export default function Calendar({ year, month, selectedDate, onSelect, onPrevMo
               type="button"
               onClick={() => !isPast && onSelect(dateStr)}
               disabled={isPast}
-              className={`text-center text-sm py-2 rounded-lg transition-colors ${
+              className={`relative text-center text-sm py-2 rounded-lg transition-colors ${
                 isSelected
                   ? "bg-purple-600 text-white font-semibold"
                   : isToday
@@ -89,6 +91,9 @@ export default function Calendar({ year, month, selectedDate, onSelect, onPrevMo
               }`}
             >
               {day}
+              {isAvailable && !isSelected && (
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-500" />
+              )}
             </button>
           )
         })}

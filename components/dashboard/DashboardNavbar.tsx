@@ -2,12 +2,17 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, LogOut } from 'lucide-react'
+import { ArrowLeft, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-export default function DashboardNavbar() {
+interface Props {
+  onToggleSidebar?: () => void
+  sidebarOpen?: boolean
+}
+
+export default function DashboardNavbar({ onToggleSidebar, sidebarOpen }: Props) {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
 
   const handleLogout = () => {
     logout()
@@ -21,33 +26,33 @@ export default function DashboardNavbar() {
       </Link>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        {user && (
-          <>
-            <span className="hidden sm:block text-xs text-gray-400 mr-1">
-              {user.name}
-            </span>
-            <span className="w-7 h-7 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-xs sm:hidden">
-              {user.name.charAt(0)}
-            </span>
-          </>
-        )}
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-purple-600 transition-colors"
+          className="hidden lg:flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-purple-600 transition-colors"
           title="Volver al sitio"
         >
           <ArrowLeft size={15} />
           <span className="hidden sm:inline">Volver al sitio</span>
         </Link>
-        <span className="text-gray-200 select-none hidden sm:inline">|</span>
+        <span className="text-gray-200 select-none hidden lg:inline">|</span>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-red-600 transition-colors"
+          className="hidden lg:flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-red-600 transition-colors"
           title="Cerrar sesión"
         >
           <LogOut size={15} />
           <span className="hidden sm:inline">Cerrar sesión</span>
         </button>
+
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden p-2 text-gray-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+            title="Menú"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        )}
       </div>
     </nav>
   )
