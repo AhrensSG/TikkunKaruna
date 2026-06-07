@@ -20,11 +20,14 @@ export async function GET() {
        t.price_cents,
        COALESCE(p.amount_cents, t.price_cents) AS amount_cents,
        p.status AS payment_status,
-       b.admin_notes
+       b.admin_notes,
+       COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
      FROM bookings b
      JOIN therapies t ON t.id = b.therapy_id
      LEFT JOIN payments p ON p.booking_id = b.id
+     LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
      WHERE b.user_id = $1
+     GROUP BY b.id, t.name, t.price_cents, p.amount_cents, p.status
      ORDER BY b.start_time DESC`,
     [session.user.id]
   )

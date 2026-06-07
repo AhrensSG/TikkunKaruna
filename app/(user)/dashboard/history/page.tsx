@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, MessageSquare } from "lucide-react"
+import { Loader2, MessageSquare, ListChecks, X } from "lucide-react"
 
 interface Booking {
   id: string
@@ -13,6 +13,7 @@ interface Booking {
   amount_cents: number
   payment_status: string
   admin_notes: string | null
+  requirements: string[]
 }
 
 const statusLabels: Record<string, string> = {
@@ -43,6 +44,7 @@ export default function HistoryPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [viewNotes, setViewNotes] = useState<{ therapy: string; notes: string } | null>(null)
+  const [viewReqs, setViewReqs] = useState<{ therapy: string; requirements: string[] } | null>(null)
 
   useEffect(() => {
     fetch("/api/bookings")
@@ -118,6 +120,15 @@ export default function HistoryPage() {
                     <td className="px-4 py-3 font-medium text-gray-900">
                       <div className="flex items-center gap-2">
                         <span>{b.therapy_name}</span>
+                        {b.requirements && b.requirements.length > 0 && (
+                          <button
+                            onClick={() => setViewReqs({ therapy: b.therapy_name, requirements: b.requirements })}
+                            className="text-amber-500 hover:text-amber-700"
+                            title="Ver requisitos"
+                          >
+                            <ListChecks size={14} />
+                          </button>
+                        )}
                         {b.status === "completed" && b.admin_notes && (
                           <button
                             onClick={() => setViewNotes({ therapy: b.therapy_name, notes: b.admin_notes! })}
@@ -146,6 +157,40 @@ export default function HistoryPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal: Requisitos */}
+      {viewReqs && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ListChecks size={18} className="text-amber-500" />
+                <h2 className="text-lg font-bold text-gray-900">Requisitos</h2>
+              </div>
+              <button onClick={() => setViewReqs(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">Para tu sesión de {viewReqs.therapy}</p>
+            <ul className="space-y-2">
+              {viewReqs.requirements.map((req, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                  {req}
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setViewReqs(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Mensaje de Inma */}
       {viewNotes && (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
-  Clock, ArrowRight, CalendarCheck,
+  Clock, ArrowRight, CalendarCheck, ListChecks,
 } from "lucide-react";
 import pool from "@/lib/db";
 
@@ -25,9 +25,13 @@ function formatDuration(minutes: number) {
 
 export default async function TerapiasPage() {
   const result = await pool.query(
-    `SELECT id, name, description, duration_minutes, price_cents, image_url
-     FROM therapies WHERE is_active = true
-     ORDER BY created_at DESC`
+    `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
+            COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
+     FROM therapies t
+     LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
+     WHERE t.is_active = true
+     GROUP BY t.id
+     ORDER BY t.created_at DESC`
   )
   const therapies = result.rows
 
@@ -40,6 +44,7 @@ export default async function TerapiasPage() {
     price: `${(t.price_cents / 100).toFixed(0)} €`,
     tag: i === 0 ? 'Nueva' : null,
     image_url: t.image_url,
+    requirements: t.requirements || [],
   }))
   return (
     <>
@@ -68,7 +73,7 @@ export default async function TerapiasPage() {
       <section className="py-20 bg-cream-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map(({ Icon, id, name, fullDesc, duration, price, tag, image_url }) => (
+            {services.map(({ Icon, id, name, fullDesc, duration, price, tag, image_url, requirements }) => (
               <div
                 key={name}
                 className="group flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
@@ -111,9 +116,30 @@ export default async function TerapiasPage() {
                   <h2 className="font-heading text-xl text-purple-950 mb-2 leading-snug">{name}</h2>
 
                   {/* Description */}
-                  <p className="text-purple-600 text-sm leading-relaxed font-body flex-1 mb-4 line-clamp-3">
+                  <p className="text-purple-600 text-sm leading-relaxed font-body flex-1 mb-3 line-clamp-3">
                     {fullDesc}
                   </p>
+
+                  {/* Requirements */}
+                  {requirements.length > 0 && (
+                    <div className="mb-4">
+                      <p className="flex items-center gap-1 text-xs font-semibold text-purple-800 mb-1.5">
+                        <ListChecks size={12} />
+                        Requisitos
+                      </p>
+                      <ul className="space-y-1">
+                        {requirements.slice(0, 3).map((req: string, i: number) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-purple-600">
+                            <span className="mt-1 w-1 h-1 rounded-full bg-gold-400 flex-shrink-0" />
+                            {req}
+                          </li>
+                        ))}
+                        {requirements.length > 3 && (
+                          <li className="text-xs text-purple-400 pl-3">+{requirements.length - 3} más</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* CTA */}
                   <Link
