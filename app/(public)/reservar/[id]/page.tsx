@@ -39,6 +39,7 @@ export default function ReservarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
 
@@ -343,9 +344,29 @@ export default function ReservarPage() {
                   </div>
                 )}
 
+                <label className="flex items-start gap-3 mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 accent-gold-500 shrink-0"
+                  />
+                  <span className="text-xs text-gray-600 font-body leading-relaxed">
+                    He leído y acepto los{" "}
+                    <a href="/terminos" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
+                      Términos y condiciones
+                    </a>{" "}
+                    y la{" "}
+                    <a href="/privacidad" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
+                      Política de privacidad
+                    </a>{" "}
+                    de TikkunKaruna.
+                  </span>
+                </label>
+
                 <button
                   onClick={handlePay}
-                  disabled={submitting}
+                  disabled={submitting || !acceptedTerms}
                   className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}

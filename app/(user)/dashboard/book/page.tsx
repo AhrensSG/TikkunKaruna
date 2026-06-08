@@ -53,6 +53,7 @@ export default function BookPage() {
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [availableDates, setAvailableDates] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const filteredTherapies = useMemo(() => {
     if (!searchQuery.trim()) return therapies
@@ -453,6 +454,27 @@ export default function BookPage() {
             <p>Pago seguro procesado por Stripe. No almacenamos tus datos bancarios.</p>
           </div>
 
+          {/* Terms acceptance */}
+          <label className="flex items-start gap-3 cursor-pointer bg-white rounded-xl border border-gray-200 p-4">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 accent-gold-500 shrink-0"
+            />
+            <span className="text-xs text-gray-600 font-body leading-relaxed">
+              He leído y acepto los{" "}
+              <a href="/terminos" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
+                Términos y condiciones
+              </a>{" "}
+              y la{" "}
+              <a href="/privacidad" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
+                Política de privacidad
+              </a>{" "}
+              de TikkunKaruna.
+            </span>
+          </label>
+
           {/* Buttons */}
           <div className="flex gap-3">
             <button
@@ -464,7 +486,7 @@ export default function BookPage() {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={submitting}
+              disabled={submitting || !acceptedTerms}
               className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white text-sm font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               {submitting && <Loader2 size={15} className="animate-spin" />}
