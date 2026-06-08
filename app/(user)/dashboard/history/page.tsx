@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, MessageSquare, ListChecks, X } from "lucide-react"
+import { Loader2, X, Clock, CalendarDays, ListChecks, MessageSquare } from "lucide-react"
 
 interface Booking {
   id: string
@@ -40,11 +40,17 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
 }
 
+function formatDateTime(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  })
+}
+
 export default function HistoryPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewNotes, setViewNotes] = useState<{ therapy: string; notes: string } | null>(null)
-  const [viewReqs, setViewReqs] = useState<{ therapy: string; requirements: string[] } | null>(null)
+  const [selected, setSelected] = useState<Booking | null>(null)
 
   useEffect(() => {
     fetch("/api/bookings")
@@ -116,30 +122,12 @@ export default function HistoryPage() {
               {bookings.map((b) => {
                 const label = statusLabels[b.status] || b.status
                 return (
-                  <tr key={b.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      <div className="flex items-center gap-2">
-                        <span>{b.therapy_name}</span>
-                        {b.requirements && b.requirements.length > 0 && (
-                          <button
-                            onClick={() => setViewReqs({ therapy: b.therapy_name, requirements: b.requirements })}
-                            className="text-amber-500 hover:text-amber-700"
-                            title="Ver requisitos"
-                          >
-                            <ListChecks size={14} />
-                          </button>
-                        )}
-                        {b.status === "completed" && b.admin_notes && (
-                          <button
-                            onClick={() => setViewNotes({ therapy: b.therapy_name, notes: b.admin_notes! })}
-                            className="text-purple-500 hover:text-purple-700"
-                            title="Ver mensaje de Inma"
-                          >
-                            <MessageSquare size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                  <tr
+                    key={b.id}
+                    onClick={() => setSelected(b)}
+                    className="border-b border-gray-100 last:border-0 hover:bg-purple-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">{b.therapy_name}</td>
                     <td className="px-4 py-3 text-gray-600">{formatDate(b.start_time)}</td>
                     <td className="px-4 py-3 text-gray-600">{formatTime(b.start_time)}</td>
                     <td className="px-4 py-3">
@@ -158,55 +146,70 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Modal: Requisitos */}
-      {viewReqs && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      {/* Modal: Detalle de reserva */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <ListChecks size={18} className="text-amber-500" />
-                <h2 className="text-lg font-bold text-gray-900">Requisitos</h2>
-              </div>
-              <button onClick={() => setViewReqs(null)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-lg font-bold text-gray-900">{selected.therapy_name}</h2>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
               </button>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Para tu sesión de {viewReqs.therapy}</p>
-            <ul className="space-y-2">
-              {viewReqs.requirements.map((req, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                  {req}
-                </li>
-              ))}
-            </ul>
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setViewReqs(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Modal: Mensaje de Inma */}
-      {viewNotes && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageSquare size={18} className="text-purple-600" />
-              <h2 className="text-lg font-bold text-gray-900">Mensaje de Inma</h2>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CalendarDays size={15} className="text-purple-500" />
+                {formatDateTime(selected.start_time)}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock size={15} className="text-purple-500" />
+                {formatTime(selected.start_time)} — {formatTime(selected.end_time)}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[statusLabels[selected.status] || selected.status] || ""}`}>
+                  {statusLabels[selected.status] || selected.status}
+                </span>
+                <span className="text-sm font-semibold text-gray-900 ml-auto">
+                  {selected.payment_status === "succeeded" ? `${(Number(selected.amount_cents) / 100).toFixed(0)} €` : "—"}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Para tu sesión de {viewNotes.therapy}</p>
-            <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-              {viewNotes.notes}
-            </div>
-            <div className="flex justify-end mt-4">
+
+            {/* Requirements */}
+            {selected.requirements && selected.requirements.length > 0 && (
+              <div className="mb-6">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+                  <ListChecks size={15} className="text-amber-500" />
+                  Requisitos
+                </h3>
+                <ul className="space-y-1">
+                  {selected.requirements.map((req, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Inma's message */}
+            {selected.status === "completed" && selected.admin_notes && (
+              <div>
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+                  <MessageSquare size={15} className="text-purple-600" />
+                  Mensaje de Inma
+                </h3>
+                <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {selected.admin_notes}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6 pt-4 border-t border-gray-100">
               <button
-                onClick={() => setViewNotes(null)}
+                onClick={() => setSelected(null)}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Cerrar
