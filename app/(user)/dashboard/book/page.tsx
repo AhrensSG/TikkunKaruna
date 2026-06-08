@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import {
   Sparkles, Clock, Euro, ArrowRight, Check, Loader2,
   ChevronLeft, CreditCard, ShieldCheck, CalendarDays,
-  Info,
+  Info, Search, ListChecks,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
 
@@ -52,6 +52,17 @@ export default function BookPage() {
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const filteredTherapies = useMemo(() => {
+    if (!searchQuery.trim()) return therapies
+    const q = searchQuery.toLowerCase()
+    return therapies.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q)
+    )
+  }, [therapies, searchQuery])
 
   useEffect(() => {
     if (searchParams.get("canceled") === "true") {
@@ -197,44 +208,104 @@ export default function BookPage() {
 
       {/* Step 1: Therapies */}
       {step === 1 && (
-        <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {therapies.map((t) => {
+        <div className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar terapia..."
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+            />
+          </div>
+
+          {/* Therapy list */}
+          <div className="space-y-3">
+            {filteredTherapies.length === 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-sm text-gray-400">
+                No se encontraron terapias con "{searchQuery}"
+              </div>
+            )}
+            {filteredTherapies.map((t) => {
               const isSelected = selectedTherapy === t.id
               return (
-                <button
+                <div
                   key={t.id}
-                  onClick={() => setSelectedTherapy(t.id)}
-                  className={`text-left bg-white rounded-xl border-2 p-5 transition-all ${
+                  className={`bg-white rounded-xl border-2 transition-all ${
                     isSelected
                       ? "border-purple-600 shadow-md shadow-purple-100"
-                      : "border-gray-100 hover:border-purple-200 hover:shadow-sm"
+                      : "border-gray-100 hover:border-purple-200"
                   }`}
                 >
-                  {t.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.image_url} alt={t.name} className="w-full h-28 object-cover rounded-lg mb-3" />
-                  ) : (
-                    <div className="w-full h-28 bg-purple-50 rounded-lg mb-3 flex items-center justify-center">
-                      <Sparkles size={28} className="text-purple-300" />
+                  {/* Compact header — always visible */}
+                  <button
+                    onClick={() => setSelectedTherapy(isSelected ? null : t.id)}
+                    className="w-full flex items-center gap-4 p-4 text-left"
+                  >
+                    {t.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.image_url} alt={t.name} className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                        <Sparkles size={20} className="text-purple-300" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">{t.name}</h3>
+                        {isSelected && <Check size={14} className="text-purple-600 shrink-0" />}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{t.description}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-purple-700">{t.price_cents / 100} €</p>
+                      <p className="text-xs text-gray-400">{formatDuration(t.duration_minutes)}</p>
+                    </div>
+                  </button>
+
+                  {/* Expanded details */}
+                  {isSelected && (
+                    <div className="border-t border-purple-100 px-4 pb-5 pt-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-purple-600">Duración</p>
+                          <p className="font-semibold text-purple-900">{formatDuration(t.duration_minutes)}</p>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-purple-600">Precio</p>
+                          <p className="font-semibold text-purple-900">{t.price_cents / 100} €</p>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-600 leading-relaxed">{t.description}</p>
+
+                      {t.requirements && t.requirements.length > 0 && (
+                        <div>
+                          <p className="flex items-center gap-1 text-xs font-semibold text-gray-700 mb-1.5">
+                            <ListChecks size={12} /> Requisitos
+                          </p>
+                          <ul className="space-y-1">
+                            {t.requirements.map((req, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
+                                <span className="mt-1 w-1 h-1 rounded-full bg-purple-400 flex-shrink-0" />
+                                {req}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleNext() }}
+                        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-3 rounded-xl transition-all"
+                      >
+                        Continuar con {t.name} <ArrowRight size={15} />
+                      </button>
                     </div>
                   )}
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-gray-900">{t.name}</h3>
-                    {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center shrink-0">
-                        <Check size={11} className="text-white" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</p>
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Clock size={11} /> {formatDuration(t.duration_minutes)}
-                    </span>
-                    <span className="text-purple-700 font-semibold text-sm">{t.price_cents / 100} €</span>
-                  </div>
-                </button>
+                </div>
               )
             })}
           </div>
@@ -404,33 +475,19 @@ export default function BookPage() {
         </div>
       )}
 
-      {/* Sticky bottom bar — always visible on steps 1 & 2 */}
-      {(step === 1 || step === 2) && (
+      {/* Sticky bottom bar — always visible on step 2 */}
+      {step === 2 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto flex items-center justify-between h-16">
             {/* Selection summary */}
             <div className="flex items-center gap-3 min-w-0">
               <button
-                onClick={() => step === 2 ? setStep(1) : null}
-                className={`text-gray-400 hover:text-gray-600 transition-colors ${step === 1 ? "invisible" : ""}`}
+                onClick={() => setStep(1)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <div className="min-w-0">
-                {step === 1 && selectedTherapy && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900 truncate">
-                      {therapies.find((t) => t.id === selectedTherapy)?.name}
-                    </span>
-                    <span className="text-xs text-purple-600 font-medium">
-                      {(() => {
-                        const t = therapies.find((t) => t.id === selectedTherapy)
-                        return t ? `${t.price_cents / 100} €` : ""
-                      })()}
-                    </span>
-                  </div>
-                )}
-                {step === 2 && (
                   <div className="flex items-center gap-2 text-sm">
                     {selectedDate && (
                       <span className="text-gray-500">
@@ -444,14 +501,13 @@ export default function BookPage() {
                       <span className="text-gray-400">Selecciona fecha y hora</span>
                     )}
                   </div>
-                )}
               </div>
             </div>
 
             {/* Continue button */}
             <button
               onClick={handleNext}
-              disabled={step === 1 ? !selectedTherapy : !selectedDate || !selectedTime}
+              disabled={!selectedDate || !selectedTime}
               className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all shrink-0"
             >
               Continuar <ArrowRight size={15} />
