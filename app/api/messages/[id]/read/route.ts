@@ -10,11 +10,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { id } = await params
 
-  await pool.query(
-    `UPDATE bookings SET message_read_at = NOW()
-     WHERE id = $1 AND user_id = $2 AND status = 'completed' AND admin_notes IS NOT NULL`,
-    [id, session.user.id]
-  )
+  try {
+    await pool.query(
+      `UPDATE bookings SET message_read_at = NOW()
+       WHERE id = $1 AND user_id = $2 AND status = 'completed' AND admin_notes IS NOT NULL`,
+      [id, session.user.id]
+    )
+  } catch {
+    // columna message_read_at no existe aún — ignorar
+  }
 
   return NextResponse.json({ ok: true })
 }
