@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileText,
   UserCircle,
+  MessageSquareText,
   LogOut,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -17,6 +18,7 @@ const sidebarLinks = [
   { href: '/dashboard', label: 'Panel', icon: LayoutDashboard },
   { href: '/dashboard/book', label: 'Reservar terapia', icon: CalendarPlus },
   { href: '/dashboard/history', label: 'Historial', icon: ClipboardList },
+  { href: '/dashboard/messages', label: 'Mensajes', icon: MessageSquareText },
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard },
   { href: '/dashboard/invoices', label: 'Facturas', icon: FileText },
   { href: '/dashboard/profile', label: 'Mi perfil', icon: UserCircle },
