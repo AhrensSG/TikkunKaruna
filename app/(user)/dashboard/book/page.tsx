@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import {
   Sparkles, Clock, Euro, ArrowRight, Check, Loader2,
   ChevronLeft, CreditCard, ShieldCheck, CalendarDays,
-  MapPin, Info,
+  Info,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
 
@@ -147,7 +147,7 @@ export default function BookPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 pb-24">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Reservar Terapia</h1>
@@ -237,16 +237,6 @@ export default function BookPage() {
                 </button>
               )
             })}
-          </div>
-
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={handleNext}
-              disabled={!selectedTherapy}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all"
-            >
-              Continuar <ArrowRight size={15} />
-            </button>
           </div>
         </div>
       )}
@@ -343,25 +333,6 @@ export default function BookPage() {
         </div>
       )}
 
-      {/* Step 2 navigation */}
-      {step === 2 && (
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setStep(1)}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <ChevronLeft size={15} /> Atrás
-          </button>
-          <button
-            onClick={handleNext}
-            disabled={!selectedDate || !selectedTime}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all"
-          >
-            Continuar <ArrowRight size={15} />
-          </button>
-        </div>
-      )}
-
       {/* Step 3: Confirm & Pay */}
       {step === 3 && therapy && (
         <div className="max-w-lg mx-auto space-y-4">
@@ -428,6 +399,62 @@ export default function BookPage() {
               {submitting && <Loader2 size={15} className="animate-spin" />}
               {submitting ? "Procesando..." : "Pagar con tarjeta"}
               {!submitting && <CreditCard size={15} />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky bottom bar — always visible on steps 1 & 2 */}
+      {(step === 1 || step === 2) && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto flex items-center justify-between h-16">
+            {/* Selection summary */}
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => step === 2 ? setStep(1) : null}
+                className={`text-gray-400 hover:text-gray-600 transition-colors ${step === 1 ? "invisible" : ""}`}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="min-w-0">
+                {step === 1 && selectedTherapy && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {therapies.find((t) => t.id === selectedTherapy)?.name}
+                    </span>
+                    <span className="text-xs text-purple-600 font-medium">
+                      {(() => {
+                        const t = therapies.find((t) => t.id === selectedTherapy)
+                        return t ? `${t.price_cents / 100} €` : ""
+                      })()}
+                    </span>
+                  </div>
+                )}
+                {step === 2 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    {selectedDate && (
+                      <span className="text-gray-500">
+                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                    {selectedTime && (
+                      <span className="text-gray-500">· {selectedTime}</span>
+                    )}
+                    {(!selectedDate || !selectedTime) && (
+                      <span className="text-gray-400">Selecciona fecha y hora</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Continue button */}
+            <button
+              onClick={handleNext}
+              disabled={step === 1 ? !selectedTherapy : !selectedDate || !selectedTime}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all shrink-0"
+            >
+              Continuar <ArrowRight size={15} />
             </button>
           </div>
         </div>
