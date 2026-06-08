@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Loader2, MessageSquare, CalendarDays, Clock, Heart } from "lucide-react"
+import { useEffect, useState, useCallback } from "react"
+import { Loader2, MessageSquare, CalendarDays, Heart, ChevronDown } from "lucide-react"
 
 interface Message {
   id: string
@@ -10,6 +10,7 @@ interface Message {
   end_time: string
   status: string
   therapy_name: string
+  message_read_at: string | null
 }
 
 function formatDate(iso: string) {
@@ -27,7 +28,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchMessages = useCallback(() => {
     fetch("/api/messages")
       .then((r) => r.json())
       .then((data) => {
@@ -36,6 +37,26 @@ export default function MessagesPage() {
       })
       .catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
+
+  const handleToggle = async (id: string) => {
+    const isOpening = expandedId !== id
+
+    if (isOpening) {
+      const msg = messages.find((m) => m.id === id)
+      if (msg && !msg.message_read_at) {
+        await fetch(`/api/messages/${id}/read`, { method: "POST" }).catch(() => {})
+        setMessages((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, message_read_at: new Date().toISOString() } : m))
+        )
+      }
+    }
+
+    setExpandedId(isOpening ? id : null)
+  }
 
   if (loading) {
     return (
@@ -66,41 +87,58 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {messages.map((m) => {
           const isExpanded = expandedId === m.id
+          const isUnread = !m.message_read_at
+
           return (
             <div
               key={m.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-purple-200 transition-colors"
+              className={`bg-white rounded-xl border overflow-hidden transition-all ${
+                isUnread ? "border-purple-300 shadow-sm shadow-purple-100" : "border-gray-200"
+              }`}
             >
               {/* Header */}
               <button
-                onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                className="w-full flex items-center justify-between p-5 text-left hover:bg-purple-50/50 transition-colors"
+                onClick={() => handleToggle(m.id)}
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-purple-50/50 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                    <MessageSquare size={18} className="text-purple-600" />
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      isUnread ? "bg-purple-200" : "bg-gray-100"
+                    }`}
+                  >
+                    <MessageSquare
+                      size={18}
+                      className={isUnread ? "text-purple-700" : "text-gray-400"}
+                    />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{m.therapy_name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900 truncate">{m.therapy_name}</p>
+                      {isUnread && (
+                        <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0" />
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                       <CalendarDays size={11} />
                       {formatDate(m.start_time)} · {formatTime(m.start_time)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700`}>
-                    {isExpanded ? "Ocultar" : "Leer"}
-                  </span>
-                </div>
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform shrink-0 ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
               {/* Message body */}
               {isExpanded && (
-                <div className="px-5 pb-5">
+                <div className="px-4 pb-4">
                   <div className="border-t border-gray-100 pt-4">
                     <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 border border-purple-100">
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">

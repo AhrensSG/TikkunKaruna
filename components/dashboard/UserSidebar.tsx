@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -28,6 +29,14 @@ export default function UserSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/messages')
+      .then((r) => r.json())
+      .then((data) => setUnreadCount(data.unread || 0))
+      .catch(() => {})
+  }, [pathname])
 
   const handleLogout = () => {
     logout()
@@ -71,7 +80,12 @@ export default function UserSidebar() {
                 }`}
               >
                 <Icon size={18} className={isActive ? 'text-purple-700' : 'text-gray-400'} />
-                {label}
+                <span className="flex-1">{label}</span>
+                {href === '/dashboard/messages' && unreadCount > 0 && (
+                  <span className="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -97,7 +111,7 @@ export default function UserSidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors relative ${
                 isActive
                   ? 'text-purple-700 font-semibold'
                   : 'text-gray-500'
@@ -105,6 +119,11 @@ export default function UserSidebar() {
             >
               <Icon size={18} />
               {label}
+              {href === '/dashboard/messages' && unreadCount > 0 && (
+                <span className="absolute top-0.5 right-1/4 bg-purple-600 text-white text-[8px] font-bold px-1 rounded-full min-w-[14px] text-center leading-tight translate-x-3">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           )
         })}
