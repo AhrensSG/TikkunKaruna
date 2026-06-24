@@ -79,35 +79,35 @@ export default function AdminInvoicesPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-green-600 bg-green-100">
-            <Euro size={20} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 sm:mb-3 text-green-600 bg-green-100">
+            <Euro size={18} />
           </div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Ingresos totales</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{stats ? formatEuro(stats.netRevenueCents) : '—'}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Ingresos totales</p>
+          <p className="text-sm sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{stats ? formatEuro(stats.netRevenueCents) : '—'}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-purple-600 bg-purple-100">
-            <TrendingUp size={20} />
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 sm:mb-3 text-purple-600 bg-purple-100">
+            <TrendingUp size={18} />
           </div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Este mes</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{stats ? formatEuro(stats.monthRevenueCents) : '—'}</p>
-          {stats && <p className="text-xs text-gray-400 mt-0.5">{stats.monthCount} sesiones</p>}
+          <p className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Este mes</p>
+          <p className="text-sm sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{stats ? formatEuro(stats.monthRevenueCents) : '—'}</p>
+          {stats && <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{stats.monthCount} sesiones</p>}
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-blue-600 bg-blue-100">
-            <Receipt size={20} />
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 sm:mb-3 text-blue-600 bg-blue-100">
+            <Receipt size={18} />
           </div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Facturas emitidas</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{stats?.totalInvoices || 0}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Facturas emitidas</p>
+          <p className="text-sm sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{stats?.totalInvoices || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-gold-600 bg-gold-100">
-            <CreditCard size={20} />
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-2 sm:mb-3 text-gold-600 bg-gold-100">
+            <CreditCard size={18} />
           </div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Sesiones pagadas</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{stats?.totalPayments || 0}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase tracking-wide">Sesiones pagadas</p>
+          <p className="text-sm sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{stats?.totalPayments || 0}</p>
         </div>
       </div>
 
