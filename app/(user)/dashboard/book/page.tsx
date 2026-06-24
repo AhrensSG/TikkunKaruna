@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import {
   Sparkles, Clock, Euro, ArrowRight, Check, Loader2,
   ChevronLeft, CreditCard, ShieldCheck, CalendarDays,
-  Info, Search, ListChecks,
+  Info, Search, ListChecks, Package,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
+import TermsCheckbox from "@/components/TermsCheckbox"
 
 interface Therapy {
   id: string
@@ -17,6 +18,9 @@ interface Therapy {
   price_cents: number
   image_url: string
   requirements: string[]
+  is_pack: boolean
+  session_count: number | null
+  session_duration_minutes: number | null
 }
 
 const STEPS = [
@@ -54,6 +58,8 @@ export default function BookPage() {
   const [availableDates, setAvailableDates] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [packSessions, setPackSessions] = useState<{ date: string | null; time: string | null }[]>([])
+  const [packSessionIndex, setPackSessionIndex] = useState(0)
 
   const filteredTherapies = useMemo(() => {
     if (!searchQuery.trim()) return therapies
@@ -84,31 +90,6 @@ export default function BookPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
-    if (!selectedTherapy) return
-    fetch(`/api/availability/month?year=${calYear}&month=${calMonth}&therapyId=${selectedTherapy}`)
-      .then((r) => r.json())
-      .then((data) => setAvailableDates(data.dates || []))
-      .catch(() => setAvailableDates([]))
-  }, [calYear, calMonth, selectedTherapy])
-
-  useEffect(() => {
-    if (!selectedDate || !selectedTherapy) return
-    const therapy = therapies.find((t) => t.id === selectedTherapy)
-    if (!therapy) return
-
-    setSlotsLoading(true)
-    setSelectedTime(null)
-
-    fetch(`/api/availability?date=${selectedDate}&therapyId=${selectedTherapy}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setAvailableSlots(data.slots || [])
-        setSlotsLoading(false)
-      })
-      .catch(() => setSlotsLoading(false))
-  }, [selectedDate, selectedTherapy, therapies])
-
   const therapy = therapies.find((t) => t.id === selectedTherapy)
 
   const therapyPrice = useMemo(() => {
@@ -116,23 +97,95 @@ export default function BookPage() {
     return `${(therapy.price_cents / 100).toFixed(0)} €`
   }, [therapy])
 
+  const prevSessionStart = useMemo(() => {
+    if (!therapy?.is_pack || packSessionIndex === 0) return null
+    const prev = packSessions[packSessionIndex - 1]
+    if (!prev.date || !prev.time) return null
+    return new Date(`${prev.date}T${prev.time}:00`).toISOString()
+  }, [packSessions, packSessionIndex, therapy])
+
+  useEffect(() => {
+    if (!selectedTherapy) return
+    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: selectedTherapy })
+    if (prevSessionStart) params.set("after", prevSessionStart)
+    fetch(`/api/availability/month?${params}`)
+      .then((r) => r.json())
+      .then((data) => setAvailableDates(data.dates || []))
+      .catch(() => setAvailableDates([]))
+  }, [calYear, calMonth, selectedTherapy, prevSessionStart])
+
+  useEffect(() => {
+    if (!selectedDate || !selectedTherapy) return
+    const _therapy = therapies.find((t) => t.id === selectedTherapy)
+    if (!_therapy) return
+
+    setSlotsLoading(true)
+    setSelectedTime(null)
+
+    const params = new URLSearchParams({ date: selectedDate, therapyId: selectedTherapy })
+    if (prevSessionStart) params.set("after", prevSessionStart)
+    fetch(`/api/availability?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setAvailableSlots(data.slots || [])
+        setSlotsLoading(false)
+      })
+      .catch(() => setSlotsLoading(false))
+  }, [selectedDate, selectedTherapy, therapies, prevSessionStart])
+
   const handleNext = () => {
-    if (step === 1 && selectedTherapy) setStep(2)
-    else if (step === 2 && selectedDate && selectedTime) setStep(3)
+    if (step === 1 && selectedTherapy) {
+      if (therapy?.is_pack && therapy.session_count) {
+        setPackSessions(Array.from({ length: therapy.session_count }, () => ({ date: null, time: null })))
+        setPackSessionIndex(0)
+        setSelectedDate(null)
+        setSelectedTime(null)
+        setStep(2)
+      } else {
+        setStep(2)
+      }
+    }
+    else if (step === 2) {
+      if (therapy?.is_pack) {
+        const updated = [...packSessions]
+        updated[packSessionIndex] = { date: selectedDate, time: selectedTime }
+        setPackSessions(updated)
+        if (packSessionIndex < packSessions.length - 1) {
+          setPackSessionIndex(packSessionIndex + 1)
+          setSelectedDate(null)
+          setSelectedTime(null)
+        } else {
+          setStep(3)
+        }
+      } else {
+        if (selectedDate && selectedTime) setStep(3)
+      }
+    }
   }
 
   const handleConfirm = async () => {
-    if (!therapy || !selectedDate || !selectedTime) return
+    if (!therapy) return
+    if (!therapy.is_pack && (!selectedDate || !selectedTime)) return
+    if (therapy.is_pack && packSessions.some((s) => !s.date || !s.time)) return
+
     setSubmitting(true)
     try {
+      const body = therapy.is_pack
+        ? {
+            therapyId: therapy.id,
+            sessions: packSessions.map((s) => ({
+              start_time: new Date(`${s.date}T${s.time}:00`).toISOString(),
+            })),
+          }
+        : {
+            therapyId: therapy.id,
+            start_time: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+          }
+
       const res = await fetch("/api/payments/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          therapyId: therapy.id,
-          date: selectedDate,
-          time: selectedTime,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (res.ok && data.url) {
@@ -318,6 +371,13 @@ export default function BookPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+            {therapy.is_pack && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+                  Sesión {packSessionIndex + 1} de {packSessions.length}
+                </span>
+              </div>
+            )}
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <CalendarDays size={15} className="text-purple-600" />
               Selecciona un día disponible
@@ -389,18 +449,51 @@ export default function BookPage() {
             {/* Therapy summary */}
             <div className="bg-purple-50 rounded-xl border border-purple-100 p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} className="text-purple-600" />
+                <Package size={14} className="text-purple-600" />
                 <span className="text-sm font-semibold text-purple-900">{therapy.name}</span>
               </div>
               <div className="space-y-1 text-xs text-purple-700">
-                <p className="flex items-center gap-1">
-                  <Clock size={11} /> {formatDuration(therapy.duration_minutes)}
-                </p>
+                {therapy.is_pack && therapy.session_duration_minutes && (
+                  <p className="flex items-center gap-1">
+                    <Clock size={11} /> {therapy.session_duration_minutes} min por sesión · {packSessions.length} sesiones
+                  </p>
+                )}
+                {!therapy.is_pack && (
+                  <p className="flex items-center gap-1">
+                    <Clock size={11} /> {formatDuration(therapy.duration_minutes)}
+                  </p>
+                )}
                 <p className="flex items-center gap-1">
                   <Euro size={11} /> {therapyPrice}
                 </p>
               </div>
             </div>
+
+            {/* Pack sessions summary */}
+            {therapy.is_pack && (
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <h3 className="text-xs font-semibold text-gray-700 mb-2">Sesiones del pack</h3>
+                <div className="space-y-1.5">
+                  {packSessions.map((s, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded-lg ${
+                        i === packSessionIndex ? 'bg-purple-100 text-purple-800 font-medium' :
+                        s.date && s.time ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {s.date && s.time ? <Check size={11} className="text-green-500" /> : i + 1}
+                      </span>
+                      <span>
+                        Sesión {i + 1}
+                        {s.date && s.time && ` — ${new Date(s.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })} ${s.time}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -412,32 +505,57 @@ export default function BookPage() {
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-5 text-center text-white">
               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-2">
-                <Sparkles size={22} className="text-white" />
+                {therapy.is_pack ? <Package size={22} className="text-white" /> : <Sparkles size={22} className="text-white" />}
               </div>
               <h2 className="text-lg font-bold">{therapy.name}</h2>
-              <p className="text-sm text-purple-200 mt-0.5">{formatDuration(therapy.duration_minutes)}</p>
+              <p className="text-sm text-purple-200 mt-0.5">
+                {therapy.is_pack
+                  ? `${packSessions.length} sesiones · ${therapy.session_duration_minutes} min cada una`
+                  : formatDuration(therapy.duration_minutes)}
+              </p>
             </div>
 
             {/* Details */}
             <div className="p-5 space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <CalendarDays size={16} className="text-purple-500" />
-                <div>
-                  <p className="text-gray-500 text-xs">Fecha</p>
-                  <p className="font-medium text-gray-900">
-                    {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", {
-                      day: "numeric", month: "long", year: "numeric",
-                    }) : ""}
-                  </p>
+              {therapy.is_pack ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Sesiones programadas</p>
+                  {packSessions.map((s, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm bg-purple-50 rounded-lg p-3">
+                      <span className="w-6 h-6 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900">
+                          {s.date ? new Date(s.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                        </p>
+                        <p className="text-xs text-gray-500">{s.time}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Clock size={16} className="text-purple-500" />
-                <div>
-                  <p className="text-gray-500 text-xs">Horario</p>
-                  <p className="font-medium text-gray-900">{selectedTime}</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 text-sm">
+                    <CalendarDays size={16} className="text-purple-500" />
+                    <div>
+                      <p className="text-gray-500 text-xs">Fecha</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", {
+                          day: "numeric", month: "long", year: "numeric",
+                        }) : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Clock size={16} className="text-purple-500" />
+                    <div>
+                      <p className="text-gray-500 text-xs">Horario</p>
+                      <p className="font-medium text-gray-900">{selectedTime}</p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="border-t border-gray-100 pt-4 mt-4">
                 <div className="flex items-center justify-between">
@@ -454,26 +572,7 @@ export default function BookPage() {
             <p>Pago seguro procesado por Stripe. No almacenamos tus datos bancarios.</p>
           </div>
 
-          {/* Terms acceptance */}
-          <label className="flex items-start gap-3 cursor-pointer bg-white rounded-xl border border-gray-200 p-4">
-            <input
-              type="checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 accent-gold-500 shrink-0"
-            />
-            <span className="text-xs text-gray-600 font-body leading-relaxed">
-              He leído y acepto los{" "}
-              <a href="/terminos" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
-                Términos y condiciones
-              </a>{" "}
-              y la{" "}
-              <a href="/privacidad" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
-                Política de privacidad
-              </a>{" "}
-              de TikkunKaruna.
-            </span>
-          </label>
+          <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
 
           {/* Buttons */}
           <div className="flex gap-3">
@@ -501,38 +600,57 @@ export default function BookPage() {
       {step === 2 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto flex items-center justify-between h-16">
-            {/* Selection summary */}
             <div className="flex items-center gap-3 min-w-0">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => {
+                  if (therapy?.is_pack && packSessionIndex > 0) {
+                    const prev = packSessions[packSessionIndex - 1]
+                    setSelectedDate(prev.date)
+                    setSelectedTime(prev.time)
+                    setPackSessionIndex(packSessionIndex - 1)
+                  } else {
+                    setStep(1)
+                  }
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-sm">
-                    {selectedDate && (
-                      <span className="text-gray-500">
-                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                      </span>
-                    )}
-                    {selectedTime && (
-                      <span className="text-gray-500">· {selectedTime}</span>
-                    )}
-                    {(!selectedDate || !selectedTime) && (
-                      <span className="text-gray-400">Selecciona fecha y hora</span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {therapy?.is_pack ? (
+                    <span className="text-gray-500">
+                      Sesión {packSessionIndex + 1} de {packSessions.length}
+                      {selectedDate && ` · ${new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                      {selectedTime && ` · ${selectedTime}`}
+                    </span>
+                  ) : selectedDate || selectedTime ? (
+                    <>
+                      {selectedDate && (
+                        <span className="text-gray-500">
+                          {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                      {selectedTime && (
+                        <span className="text-gray-500">· {selectedTime}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-400">Selecciona fecha y hora</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Continue button */}
             <button
               onClick={handleNext}
-              disabled={!selectedDate || !selectedTime}
+              disabled={therapy?.is_pack ? !selectedDate || !selectedTime : !selectedDate || !selectedTime}
               className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all shrink-0"
             >
-              Continuar <ArrowRight size={15} />
+              {therapy?.is_pack && packSessionIndex < packSessions.length - 1
+                ? `Siguiente (${packSessionIndex + 1}/${packSessions.length})`
+                : 'Continuar'}
+              <ArrowRight size={15} />
             </button>
           </div>
         </div>

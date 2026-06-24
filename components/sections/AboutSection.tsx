@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Heart, Star, Leaf } from "lucide-react";
-import LogoMark from "@/components/ui/LogoMark";
 
 const highlights = [
   { Icon: Heart, label: "Vocación genuina", desc: "Cada sesión, un compromiso real con tu bienestar." },
@@ -18,20 +18,16 @@ export default function AboutSection() {
           <div className="relative order-2 lg:order-1">
             {/* Decorative frame */}
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-purple-100 to-gold-100/30 -z-10" />
-            <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 to-purple-950 flex items-center justify-center">
-              {/* Placeholder visual while client provides a photo */}
-              <div className="flex flex-col items-center gap-6 text-center px-8">
-                <LogoMark size="lg" />
-                <p className="font-heading text-2xl text-white/60 font-light italic">
-                  &ldquo;Fotografía de Inma&rdquo;
-                </p>
-                <p className="text-purple-400 text-xs font-body tracking-wide">
-                  Imagen pendiente de añadir
-                </p>
-              </div>
-              {/* Decorative gold corner */}
-              <div className="absolute bottom-6 right-6 w-16 h-16 rounded-full border border-gold-500/30" />
-              <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full border border-gold-500/50" />
+            <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden">
+              <Image
+                src="/inma.jpeg"
+                alt="Inma — Terapeuta holística"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover object-center"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-950/40 via-transparent to-transparent" />
             </div>
             {/* Floating badge */}
             <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl shadow-purple-100/60 px-6 py-4 border border-purple-100">

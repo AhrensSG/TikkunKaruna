@@ -17,7 +17,7 @@ async function migrate() {
       await pool.query(sql)
       console.log(`✓ ${file}`)
     } catch (err) {
-      if (err.code === '42P07' || err.code === '42710') {
+      if (err.code === '42P07' || err.code === '42710' || err.code === '42701' || err.code === '42P16') {
         console.log(`- ${file} (already applied)`)
       } else {
         throw err

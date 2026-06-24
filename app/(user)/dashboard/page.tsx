@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { CalendarDays, Clock, Award, Loader2 } from "lucide-react"
 
+interface BookingSession {
+  id: string
+  session_number: number
+  start_time: string
+  end_time: string
+  status: string
+}
+
 interface Booking {
   id: string
   start_time: string
@@ -14,6 +22,7 @@ interface Booking {
   price_cents: number
   amount_cents: number
   payment_status: string
+  sessions?: BookingSession[]
 }
 
 function formatDate(iso: string) {
@@ -61,8 +70,22 @@ export default function DashboardPage() {
   const now = new Date()
 
   const upcomingSessions = bookings
-    .filter((b) => new Date(b.start_time) > now && b.status === "confirmed")
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .filter((b) => b.status === "confirmed")
+    .flatMap((b) => {
+      if (b.sessions && b.sessions.length > 0) {
+        return b.sessions
+          .filter((s) => s.status === "confirmed" && new Date(s.start_time) > now)
+          .map((s) => ({
+            ...b,
+            id: s.id,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            session_number: s.session_number,
+          }))
+      }
+      return new Date(b.start_time) > now ? [{ ...b, session_number: 0 }] : []
+    })
+    .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 
   const nextSession = upcomingSessions[0] || null
 
@@ -93,7 +116,9 @@ export default function DashboardPage() {
           <div className="min-w-0">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Próxima sesión</p>
             <p className="text-sm font-semibold text-gray-900 mt-0.5 truncate">
-              {nextSession ? `${formatDate(nextSession.start_time)} · ${formatTime(nextSession.start_time)}` : "Sin reservas"}
+              {nextSession
+                ? `${formatDate(nextSession.start_time)} · ${formatTime(nextSession.start_time)}${(nextSession as any).session_number > 0 ? ` · Sesión ${(nextSession as any).session_number}` : ''}`
+                : "Sin reservas"}
             </p>
           </div>
         </div>
@@ -118,13 +143,16 @@ export default function DashboardPage() {
           </h2>
           {upcomingSessions.length > 0 ? (
             <div className="space-y-3">
-              {upcomingSessions.map((s) => (
+              {upcomingSessions.map((s: any) => (
                 <div key={s.id} className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
                   <div className="w-12 h-12 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-lg shrink-0">
                     {s.therapy_name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{s.therapy_name}</p>
+                    <p className="font-semibold text-gray-900">
+                      {s.therapy_name}
+                      {s.session_number > 0 && <span className="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full ml-2">Sesión {s.session_number}</span>}
+                    </p>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mt-0.5">
                       <Clock size={13} />
                       {formatDateFull(s.start_time)} · {formatTime(s.start_time)} — {formatTime(s.end_time)}

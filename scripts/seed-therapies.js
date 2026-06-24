@@ -1,34 +1,39 @@
-const { initializeApp } = require('firebase/app')
-const { getStorage, ref, uploadBytes, getDownloadURL } = require('firebase/storage')
+require('dotenv').config({ path: '.env.local' })
+
+const { initializeApp, getApps, cert } = require('firebase-admin/app')
+const { getStorage } = require('firebase-admin/storage')
 const { Pool } = require('pg')
 const fs = require('fs')
 const path = require('path')
 
-// ─── Firebase Client SDK ───────────────────────────────────
-// Rules are open (allow read, write: if true), so no auth needed
-const app = initializeApp({
-  apiKey: 'AIzaSyAuxKMfPPiXmGnoKjjnyeeNoz1e8D0t1eI',
-  authDomain: 'grupostart-fd312.firebaseapp.com',
-  projectId: 'grupostart-fd312',
-  storageBucket: 'grupostart-fd312.appspot.com',
-  messagingSenderId: '1024913397672',
-  appId: '1:1024913397672:web:aea05b3acc2fafe0de2f9d',
-})
-const storage = getStorage(app)
+// ─── Firebase Admin SDK ────────────────────────────────────
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+  : undefined
+
+const app =
+  getApps().length === 0
+    ? initializeApp({
+        credential: serviceAccount ? cert(serviceAccount) : undefined,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      })
+    : getApps()[0]
+
+const bucket = getStorage(app).bucket()
 
 // ─── PostgreSQL ─────────────────────────────────────────────
 const pool = new Pool({
-  connectionString:
-    'postgresql://postgres:postgres@localhost:5432/tikkunkaruna',
+  connectionString: process.env.DATABASE_URL,
 })
 
 // ─── Helper: upload image & get URL ────────────────────────
 async function uploadImage(localPath) {
   const fileName = `therapies/${Date.now()}-${path.basename(localPath)}`
   const fileBuffer = fs.readFileSync(localPath)
-  const storageRef = ref(storage, fileName)
-  await uploadBytes(storageRef, fileBuffer)
-  return getDownloadURL(storageRef)
+  const blob = bucket.file(fileName)
+  await blob.save(fileBuffer, { metadata: { contentType: 'image/jpeg' } })
+  await blob.makePublic()
+  return `https://storage.googleapis.com/${bucket.name}/${blob.name}`
 }
 
 // ─── Therapy data ──────────────────────────────────────────
@@ -41,6 +46,7 @@ const therapies = [
     duration_minutes: 90,
     price_cents: 7500,
     image: 'IMG_6593.JPG',
+    sort_order: 1,
     requirements: [],
   },
   {
@@ -50,6 +56,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 6500,
     image: 'IMG_6578.jpg',
+    sort_order: 2,
     requirements: [],
   },
   {
@@ -59,6 +66,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 6500,
     image: 'IMG_6580.JPG',
+    sort_order: 3,
     requirements: [],
   },
   {
@@ -68,6 +76,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 6500,
     image: 'IMG_6581.JPG',
+    sort_order: 4,
     requirements: [],
   },
   {
@@ -77,6 +86,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 6500,
     image: 'IMG_6583.JPG',
+    sort_order: 5,
     requirements: [],
   },
   {
@@ -86,6 +96,7 @@ const therapies = [
     duration_minutes: 90,
     price_cents: 7500,
     image: 'IMG_6591.JPG',
+    sort_order: 6,
     requirements: ['Se recomienda haber realizado primero el pack RESET ENERGETICO'],
   },
   {
@@ -95,6 +106,7 @@ const therapies = [
     duration_minutes: 90,
     price_cents: 7500,
     image: 'IMG_6589.JPG',
+    sort_order: 7,
     requirements: ['Se recomienda haber realizado primero el pack RESET ENERGETICO'],
   },
   {
@@ -104,6 +116,7 @@ const therapies = [
     duration_minutes: 90,
     price_cents: 8000,
     image: 'IMG_6609.JPG',
+    sort_order: 8,
     requirements: ['Se debe haber realizado primero el pack RESET ENERGETICO'],
   },
   {
@@ -113,6 +126,7 @@ const therapies = [
     duration_minutes: 90,
     price_cents: 7000,
     image: 'IMG_6610.JPG',
+    sort_order: 9,
     requirements: ['Se debe haber realizado primero el pack RESET ENERGETICO'],
   },
   {
@@ -122,6 +136,7 @@ const therapies = [
     duration_minutes: 120,
     price_cents: 12000,
     image: 'IMG_6605.JPG',
+    sort_order: 10,
     requirements: [],
   },
   {
@@ -131,6 +146,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 7500,
     image: 'IMG_6607.JPG',
+    sort_order: 11,
     requirements: [],
   },
 
@@ -142,6 +158,7 @@ const therapies = [
     duration_minutes: 150,
     price_cents: 16000,
     image: 'IMG_6584.JPG',
+    sort_order: 12,
     requirements: [
       'Sesión 1: Reprogramación Energética (90 min)',
       'Sesión 2: Desbloqueo de Chakras Esenciales (60 min)',
@@ -155,6 +172,7 @@ const therapies = [
     duration_minutes: 330,
     price_cents: 27500,
     image: 'IMG_6586.JPG',
+    sort_order: 13,
     requirements: [
       'Sesión 1: Reprogramación Energética (90 min)',
       'Sesión 2: Desbloqueo y armonización de Chakras Esenciales (60 min)',
@@ -170,6 +188,7 @@ const therapies = [
     duration_minutes: 180,
     price_cents: 16000,
     image: 'IMG_6585.JPG',
+    sort_order: 14,
     requirements: [
       'Sesión 1: Desbloqueo de Chakras Esenciales (60 min)',
       'Sesión 2: Desbloqueo de Chakras Secundarios (60 min)',
@@ -183,6 +202,7 @@ const therapies = [
     duration_minutes: 330,
     price_cents: 22000,
     image: 'IMG_6587.JPG',
+    sort_order: 15,
     requirements: [
       'Sesión 1: Reprogramación Energética (90 min)',
       'Sesión 2: Desbloqueo y armonización de Chakras de Luz (60 min)',
@@ -199,6 +219,7 @@ const therapies = [
     duration_minutes: 45,
     price_cents: 3500,
     image: 'reiki armonizacion chackras.jpeg',
+    sort_order: 16,
     requirements: [],
   },
   {
@@ -208,6 +229,7 @@ const therapies = [
     duration_minutes: 45,
     price_cents: 3500,
     image: 'IMG_6620.jpg',
+    sort_order: 17,
     requirements: [],
   },
   {
@@ -217,6 +239,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 5000,
     image: 'IMG_6621.jpg',
+    sort_order: 18,
     requirements: [],
   },
   {
@@ -226,6 +249,7 @@ const therapies = [
     duration_minutes: 60,
     price_cents: 4500,
     image: 'IMG_6622.jpg',
+    sort_order: 19,
     requirements: [],
   },
 
@@ -237,6 +261,7 @@ const therapies = [
     duration_minutes: 180,
     price_cents: 12000,
     image: 'IMG_6571.jpg',
+    sort_order: 20,
     requirements: [
       '4 sesiones de 45 minutos en días diferentes para la integración de la energía',
     ],
@@ -248,6 +273,7 @@ const therapies = [
     duration_minutes: 570,
     price_cents: 33300,
     image: 'IMG_6624.jpg',
+    sort_order: 21,
     requirements: [
       'Sesión 1: Evaluación energética + inicio del trabajo (120 min)',
       'Sesión 2-3-4: Limpieza, desbloqueo y trabajo profundo (90 min c/u)',
@@ -272,10 +298,10 @@ async function main() {
     console.log(`✅ Imagen subida: ${imageUrl}`)
 
     const result = await pool.query(
-      `INSERT INTO therapies (name, description, duration_minutes, price_cents, is_active, image_url, video_url)
-       VALUES ($1, $2, $3, $4, true, $5, '')
+      `INSERT INTO therapies (name, description, duration_minutes, price_cents, is_active, image_url, video_url, sort_order)
+       VALUES ($1, $2, $3, $4, true, $5, '', $6)
        RETURNING id`,
-      [t.name, t.description, t.duration_minutes, t.price_cents, imageUrl]
+      [t.name, t.description, t.duration_minutes, t.price_cents, imageUrl, t.sort_order ?? 0]
     )
 
     const therapyId = result.rows[0].id

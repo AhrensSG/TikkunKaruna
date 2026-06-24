@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import {
   Sparkles, Clock, ArrowRight, Check, Loader2,
-  ArrowLeft, ShieldCheck, Video, ListChecks,
+  ArrowLeft, ShieldCheck, Video, ListChecks, Package, CalendarDays,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
+import TermsCheckbox from "@/components/TermsCheckbox"
 
 interface Therapy {
   id: string
@@ -19,6 +20,9 @@ interface Therapy {
   image_url: string
   video_url: string
   requirements: string[]
+  is_pack: boolean
+  session_count: number | null
+  session_duration_minutes: number | null
 }
 
 
@@ -42,6 +46,9 @@ export default function ReservarPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [packSessions, setPackSessions] = useState<{ date: string | null; time: string | null }[]>([])
+  const [packSessionIndex, setPackSessionIndex] = useState(0)
 
   useEffect(() => {
     fetch("/api/therapies")
@@ -49,24 +56,46 @@ export default function ReservarPage() {
       .then((data) => {
         const t = (data.therapies || []).find((t: Therapy) => t.id === id)
         setTherapy(t || null)
+        if (t?.is_pack && t.session_count) {
+          setPackSessions(Array.from({ length: t.session_count }, () => ({ date: null, time: null })))
+        }
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [id])
+
+  const prevSessionStart = useMemo(() => {
+    if (!therapy?.is_pack || packSessionIndex === 0) return null
+    const prev = packSessions[packSessionIndex - 1]
+    if (!prev.date || !prev.time) return null
+    return new Date(`${prev.date}T${prev.time}:00`).toISOString()
+  }, [packSessions, packSessionIndex, therapy])
 
   useEffect(() => {
     if (!selectedDate || !id) return
     setSlotsLoading(true)
     setSelectedTime(null)
 
-    fetch(`/api/availability?date=${selectedDate}&therapyId=${id}`)
+    const params = new URLSearchParams({ date: selectedDate, therapyId: id })
+    if (prevSessionStart) params.set("after", prevSessionStart)
+    fetch(`/api/availability?${params}`)
       .then((res) => res.json())
       .then((data) => {
         setAvailableSlots(data.slots || [])
         setSlotsLoading(false)
       })
       .catch(() => setSlotsLoading(false))
-  }, [selectedDate, id])
+  }, [selectedDate, id, prevSessionStart])
+
+  useEffect(() => {
+    if (!id) return
+    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: id })
+    if (prevSessionStart) params.set("after", prevSessionStart)
+    fetch(`/api/availability/month?${params}`)
+      .then((r) => r.json())
+      .then((data) => setAvailableDates(data.dates || []))
+      .catch(() => setAvailableDates([]))
+  }, [calYear, calMonth, id, prevSessionStart])
 
   const handlePay = async () => {
     if (status === "unauthenticated") {
@@ -74,19 +103,30 @@ export default function ReservarPage() {
       return
     }
 
-    if (!therapy || !selectedDate || !selectedTime) return
+    if (!therapy) return
+    if (!therapy.is_pack && (!selectedDate || !selectedTime)) return
+    if (therapy.is_pack && packSessions.some((s) => !s.date || !s.time)) return
+
     setSubmitting(true)
     setError("")
 
     try {
+      const body = therapy.is_pack
+        ? {
+            therapyId: therapy.id,
+            sessions: packSessions.map((s) => ({
+              start_time: new Date(`${s.date}T${s.time}:00`).toISOString(),
+            })),
+          }
+        : {
+            therapyId: therapy.id,
+            start_time: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+          }
+
       const res = await fetch("/api/payments/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          therapyId: therapy.id,
-          date: selectedDate,
-          time: selectedTime,
-        }),
+        body: JSON.stringify(body),
       })
 
       const data = await res.json()
@@ -100,6 +140,23 @@ export default function ReservarPage() {
     } catch {
       setError("Error de conexión")
       setSubmitting(false)
+    }
+  }
+
+  const handlePackNext = () => {
+    if (!therapy?.is_pack) {
+      setStep(3)
+      return
+    }
+    const updated = [...packSessions]
+    updated[packSessionIndex] = { date: selectedDate, time: selectedTime }
+    setPackSessions(updated)
+    if (packSessionIndex < packSessions.length - 1) {
+      setPackSessionIndex(packSessionIndex + 1)
+      setSelectedDate(null)
+      setSelectedTime(null)
+    } else {
+      setStep(3)
     }
   }
 
@@ -231,8 +288,21 @@ export default function ReservarPage() {
             {step === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 mb-1">Elige fecha y hora</h2>
-                  <p className="text-sm text-gray-500">Selecciona el día y horario para tu sesión.</p>
+                  {therapy.is_pack ? (
+                    <div className="flex items-center gap-3 mb-1">
+                      <h2 className="text-lg font-bold text-gray-900">Elige fecha y hora</h2>
+                      <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+                        Sesión {packSessionIndex + 1} de {packSessions.length}
+                      </span>
+                    </div>
+                  ) : (
+                    <h2 className="text-lg font-bold text-gray-900 mb-1">Elige fecha y hora</h2>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    {therapy.is_pack
+                      ? `Selecciona el día y horario para la sesión ${packSessionIndex + 1}.`
+                      : 'Selecciona el día y horario para tu sesión.'}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -252,6 +322,7 @@ export default function ReservarPage() {
                         if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1) }
                         else setCalMonth(calMonth + 1)
                       }}
+                      availableDates={availableDates}
                     />
                   </div>
 
@@ -288,13 +359,51 @@ export default function ReservarPage() {
                   </div>
                 </div>
 
+                {therapy.is_pack && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <h3 className="text-xs font-semibold text-gray-700 mb-2">Sesiones del pack</h3>
+                    <div className="space-y-1.5">
+                      {packSessions.map((s, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded-lg cursor-pointer ${
+                            i === packSessionIndex ? 'bg-purple-100 text-purple-800 font-medium' :
+                            s.date && s.time ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-400'
+                          }`}
+                          onClick={() => {
+                            if (s.date && s.time) {
+                              const updated = [...packSessions]
+                              updated[packSessionIndex] = { date: selectedDate, time: selectedTime }
+                              setPackSessions(updated)
+                              setSelectedDate(s.date)
+                              setSelectedTime(s.time)
+                              setPackSessionIndex(i)
+                            }
+                          }}
+                        >
+                          <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {s.date && s.time ? <Check size={11} className="text-green-500" /> : i + 1}
+                          </span>
+                          <span>
+                            Sesión {i + 1}
+                            {s.date && s.time && ` — ${new Date(s.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })} ${s.time}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end">
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={handlePackNext}
                     disabled={!selectedDate || !selectedTime}
                     className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
                   >
-                    Continuar <ArrowRight size={15} />
+                    {therapy.is_pack && packSessionIndex < packSessions.length - 1
+                      ? `Siguiente sesión (${packSessionIndex + 1}/${packSessions.length})`
+                      : 'Continuar'}
+                    <ArrowRight size={15} />
                   </button>
                 </div>
               </div>
@@ -304,7 +413,7 @@ export default function ReservarPage() {
               <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
-                    <Sparkles size={26} className="text-purple-600" />
+                    {therapy.is_pack ? <Package size={26} className="text-purple-600" /> : <Sparkles size={26} className="text-purple-600" />}
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Confirmar reserva</h2>
                 </div>
@@ -314,24 +423,45 @@ export default function ReservarPage() {
                     <span className="text-gray-500">Terapia</span>
                     <span className="font-medium text-gray-900">{therapy.name}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Fecha</span>
-                    <span className="font-medium text-gray-900">
-                      {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : ""}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Horario</span>
-                    <span className="font-medium text-gray-900">{selectedTime}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Duración</span>
-                    <span className="font-medium text-gray-900">
-                      {therapy.duration_minutes >= 60
-                        ? `${Math.floor(therapy.duration_minutes / 60)}h ${therapy.duration_minutes % 60 || ""}`
-                        : `${therapy.duration_minutes} min`}
-                    </span>
-                  </div>
+
+                  {therapy.is_pack ? (
+                    <>
+                      {packSessions.map((s, i) => (
+                        <div key={i} className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-500">Sesión {i + 1}</span>
+                          <span className="font-medium text-gray-900 text-right">
+                            {s.date ? new Date(s.date + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : ""}{s.time ? ` ${s.time}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-500">Duración por sesión</span>
+                        <span className="font-medium text-gray-900">{therapy.session_duration_minutes} min</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-500">Fecha</span>
+                        <span className="font-medium text-gray-900">
+                          {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-500">Horario</span>
+                        <span className="font-medium text-gray-900">{selectedTime}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-500">Duración</span>
+                        <span className="font-medium text-gray-900">
+                          {therapy.duration_minutes >= 60
+                            ? `${Math.floor(therapy.duration_minutes / 60)}h ${therapy.duration_minutes % 60 || ""}`
+                            : `${therapy.duration_minutes} min`}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex justify-between py-2">
                     <span className="text-gray-500">Total</span>
                     <span className="font-bold text-xl text-purple-700">{therapy.price_cents / 100} €</span>
@@ -344,25 +474,9 @@ export default function ReservarPage() {
                   </div>
                 )}
 
-                <label className="flex items-start gap-3 mb-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    className="mt-0.5 accent-gold-500 shrink-0"
-                  />
-                  <span className="text-xs text-gray-600 font-body leading-relaxed">
-                    He leído y acepto los{" "}
-                    <a href="/terminos" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
-                      Términos y condiciones
-                    </a>{" "}
-                    y la{" "}
-                    <a href="/privacidad" target="_blank" className="text-purple-700 hover:text-purple-900 underline font-medium">
-                      Política de privacidad
-                    </a>{" "}
-                    de TikkunKaruna.
-                  </span>
-                </label>
+                <div className="mb-4">
+                  <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
+                </div>
 
                 <button
                   onClick={handlePay}

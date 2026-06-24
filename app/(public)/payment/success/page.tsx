@@ -21,6 +21,7 @@ interface BookingData {
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
+  const bookingId = searchParams.get("booking_id")
 
   const [booking, setBooking] = useState<BookingData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +34,10 @@ function PaymentSuccessContent() {
       return
     }
 
-    fetch(`/api/payments/session?session_id=${sessionId}`)
+    const params = new URLSearchParams({ session_id: sessionId })
+    if (bookingId) params.set("booking_id", bookingId)
+
+    fetch(`/api/payments/session?${params}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.booking) {
@@ -47,7 +51,7 @@ function PaymentSuccessContent() {
         setError("Error de conexión")
         setLoading(false)
       })
-  }, [sessionId])
+  }, [sessionId, bookingId])
 
   function formatDate(iso: string) {
     const d = new Date(iso)
@@ -109,10 +113,12 @@ function PaymentSuccessContent() {
             <CheckCircle size={40} className="text-green-600" />
           </div>
           <h1 className="font-heading text-3xl text-purple-950 mb-2">
-            ¡Reserva confirmada!
+            {booking.status === "pending" ? "Procesando pago..." : "¡Reserva confirmada!"}
           </h1>
           <p className="text-purple-600 text-sm">
-            Tu pago se ha procesado correctamente. Aquí tienes los detalles de tu sesión:
+            {booking.status === "pending"
+              ? "El pago se está procesando. Recibirás un email de confirmación en breve."
+              : "Tu pago se ha procesado correctamente. Aquí tienes los detalles de tu sesión:"}
           </p>
         </div>
 

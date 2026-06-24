@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, Pencil, Trash2, EyeOff, Sparkles, Search, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, EyeOff, Sparkles, Search, X, Package } from 'lucide-react'
 import type { Therapy } from '@/types'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function TherapiesPage() {
   const [therapies, setTherapies] = useState<Therapy[]>([])
@@ -13,6 +14,10 @@ export default function TherapiesPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [filterPriceMin, setFilterPriceMin] = useState('')
   const [filterPriceMax, setFilterPriceMax] = useState('')
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const fetchTherapies = () => {
     fetch('/api/admin/therapies')
@@ -51,17 +56,23 @@ export default function TherapiesPage() {
     return result
   }, [therapies, search, filterStatus, filterPriceMin, filterPriceMax])
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar la terapia "${name}"?`)) return
-
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    setDeleteError(null)
     try {
-      const res = await fetch(`/api/admin/therapies/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/therapies/${deleteTarget.id}`, { method: 'DELETE' })
+      const data = await res.json()
       if (res.ok) {
-        setTherapies((prev) => prev.filter((t) => t.id !== id))
+        setTherapies((prev) => prev.filter((t) => t.id !== deleteTarget.id))
+        setDeleteTarget(null)
+      } else {
+        setDeleteError(data.error || 'Error al eliminar la terapia')
       }
     } catch {
-      alert('Error al eliminar la terapia')
+      setDeleteError('Error de conexión')
     }
+    setDeleteLoading(false)
   }
 
   const handleSortOrder = async (id: string, value: number) => {
@@ -220,9 +231,16 @@ export default function TherapiesPage() {
                     Inactiva
                   </span>
                 )}
+                {therapy.is_pack && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                    <Package size={12} />
+                    Pack · {therapy.session_count} sesiones
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-500 truncate mt-0.5">
                 {therapy.duration_minutes} min · {therapy.price_cents / 100} €
+                {therapy.is_pack && therapy.session_duration_minutes && ` · ${therapy.session_duration_minutes} min/sesión`}
                 {therapy.requirements && therapy.requirements.length > 0 && ` · ${therapy.requirements.length} requisito${therapy.requirements.length > 1 ? 's' : ''}`}
               </p>
             </div>
@@ -234,11 +252,10 @@ export default function TherapiesPage() {
                   <input
                     type="number"
                     min={0}
-                    max={6}
                     value={therapy.sort_order ?? 0}
                     onChange={(e) => {
                       const raw = e.target.value
-                      const num = raw === '' ? 0 : Math.min(parseInt(raw) || 0, 6)
+                      const num = raw === '' ? 0 : parseInt(raw) || 0
                       handleSortOrder(therapy.id, num)
                     }}
                     onFocus={(e) => e.target.select()}
@@ -269,7 +286,7 @@ export default function TherapiesPage() {
                 <Pencil size={16} />
               </Link>
               <button
-                onClick={() => handleDelete(therapy.id, therapy.name)}
+                onClick={() => { setDeleteTarget({ id: therapy.id, name: therapy.name }); setDeleteError(null) }}
                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <Trash2 size={16} />
@@ -308,6 +325,20 @@ export default function TherapiesPage() {
           </div>
         )}
       </div>
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Eliminar terapia"
+        message="¿Estás seguro de que deseas eliminar esta terapia? Se desactivará y dejará de mostrarse en la web. Podrás restaurarla más tarde."
+        itemName={deleteTarget?.name}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => { setDeleteTarget(null); setDeleteError(null) }}
+      />
     </div>
   )
 }

@@ -9,61 +9,54 @@ async function nextInvoiceNumber(): Promise<string> {
     "SELECT invoice_number FROM invoices ORDER BY created_at DESC LIMIT 1"
   )
   const last = rows[0]?.invoice_number
-  if (!last) return `FAC-${new Date().getFullYear()}-0001`
-  const num = parseInt(last.replace(/^FAC-\d+-/, ""), 10) || 0
   const year = new Date().getFullYear()
-  return `FAC-${year}-${String(num + 1).padStart(4, "0")}`
+  if (!last) return `TKFAC-${year}-0001`
+  const num = parseInt((last.split('-').pop() || '0'), 10)
+  return `TKFAC-${year}-${String(num + 1).padStart(4, "0")}`
 }
 
-async function createBookingFromSession(stripeSession: any) {
-  const sessionId = stripeSession.id
-  const therapyId = stripeSession.metadata?.therapy_id
-  const userId = stripeSession.metadata?.user_id
-  const date = stripeSession.metadata?.date
-  const time = stripeSession.metadata?.time
+const processedEvents = new Set<string>()
 
-  if (!therapyId || !userId || !date || !time) return
+async function confirmBookingFromSession(stripeSession: any) {
+  const bookingId = stripeSession.metadata?.booking_id
+  if (!bookingId) return
 
   const existing = await pool.query(
-    "SELECT id FROM bookings WHERE stripe_session_id = $1",
-    [sessionId]
+    "SELECT id, status, user_id, stripe_session_id FROM bookings WHERE id = $1",
+    [bookingId]
   )
-  if (existing.rows.length > 0) return
+  if (existing.rows.length === 0) return
+  if (existing.rows[0].status === 'confirmed') return
 
-  const therapyResult = await pool.query(
-    "SELECT duration_minutes FROM therapies WHERE id = $1",
-    [therapyId]
+  const booking = existing.rows[0]
+
+  await pool.query(
+    `UPDATE bookings SET status = 'confirmed', stripe_session_id = $1 WHERE id = $2`,
+    [stripeSession.id, bookingId]
   )
-  if (therapyResult.rows.length === 0) return
 
-  const durationMinutes = therapyResult.rows[0].duration_minutes
-  const startTime = new Date(`${date}T${time}:00`)
-  const endTime = new Date(startTime.getTime() + durationMinutes * 60000)
-
-  const booking = await pool.query(
-    `INSERT INTO bookings (user_id, therapy_id, start_time, end_time, status, stripe_session_id)
-     VALUES ($1, $2, $3, $4, 'confirmed', $5)
-     RETURNING id`,
-    [userId, therapyId, startTime.toISOString(), endTime.toISOString(), sessionId]
+  await pool.query(
+    `UPDATE booking_sessions SET status = 'confirmed' WHERE booking_id = $1`,
+    [bookingId]
   )
-  const bookingId = booking.rows[0].id
 
   await pool.query(
     `INSERT INTO payments (booking_id, user_id, amount_cents, currency, status, stripe_payment_id)
      VALUES ($1, $2, $3, $4, 'succeeded', $5)`,
-    [bookingId, userId, stripeSession.amount_total, stripeSession.currency || 'eur', sessionId]
+    [bookingId, booking.user_id, stripeSession.amount_total, stripeSession.currency || 'eur', stripeSession.id]
   )
 
   const invoiceNumber = await nextInvoiceNumber()
   await pool.query(
     `INSERT INTO invoices (booking_id, user_id, invoice_number, amount_cents)
      VALUES ($1, $2, $3, $4)`,
-    [bookingId, userId, invoiceNumber, stripeSession.amount_total]
+    [bookingId, booking.user_id, invoiceNumber, stripeSession.amount_total]
   )
 
   const { rows: userRows } = await pool.query(
-    `SELECT u.email, u.name as user_name, t.name as therapy_name,
+    `SELECT u.email, u.name as user_name, t.id as therapy_id, t.name as therapy_name,
             t.description as therapy_description, t.duration_minutes,
+            t.is_pack, t.session_duration_minutes,
             b.start_time
      FROM bookings b
      JOIN therapies t ON t.id = b.therapy_id
@@ -75,11 +68,22 @@ async function createBookingFromSession(stripeSession: any) {
     const info = userRows[0]
     const { rows: reqs } = await pool.query(
       `SELECT description FROM therapy_requirements WHERE therapy_id = $1`,
-      [therapyId]
+      [info.therapy_id]
     )
-    const dateStr = new Date(info.start_time).toLocaleDateString("es-ES", {
-      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-    })
+    let dateStr: string
+    if (info.is_pack) {
+      const { rows: sessions } = await pool.query(
+        `SELECT start_time FROM booking_sessions WHERE booking_id = $1 ORDER BY session_number`,
+        [bookingId]
+      )
+      dateStr = sessions.map((s: any, i: number) =>
+        `Sesión ${i + 1}: ${new Date(s.start_time).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+      ).join('\n')
+    } else {
+      dateStr = new Date(info.start_time).toLocaleDateString("es-ES", {
+        day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+      })
+    }
     await sendEmail(
       info.email,
       `✅ Reserva confirmada — ${info.therapy_name}`,
@@ -88,7 +92,7 @@ async function createBookingFromSession(stripeSession: any) {
         userEmail: info.email,
         therapyName: info.therapy_name,
         therapyDescription: info.therapy_description || '',
-        durationMinutes: info.duration_minutes,
+        durationMinutes: info.is_pack && info.session_duration_minutes ? info.session_duration_minutes : info.duration_minutes,
         dateStr,
         invoiceNumber,
         requirements: reqs.map((r: any) => r.description),
@@ -116,9 +120,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
   }
 
+  if (processedEvents.has(event.id)) {
+    return NextResponse.json({ received: true })
+  }
+
   if (event.type === 'checkout.session.completed') {
     const stripeSession = event.data.object as any
-    await createBookingFromSession(stripeSession)
+    processedEvents.add(event.id)
+    await confirmBookingFromSession(stripeSession)
+  }
+
+  if (event.type === 'checkout.session.expired') {
+    const stripeSession = event.data.object as any
+    processedEvents.add(event.id)
+    const bookingId = stripeSession.metadata?.booking_id
+    if (bookingId) {
+      await pool.query(
+        `UPDATE bookings SET status = 'cancelled' WHERE id = $1 AND status = 'pending'`,
+        [bookingId]
+      )
+      await pool.query(
+        `UPDATE booking_sessions SET status = 'cancelled' WHERE booking_id = $1 AND status = 'pending'`,
+        [bookingId]
+      )
+    }
   }
 
   return NextResponse.json({ received: true })

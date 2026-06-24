@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function GET() {
+  const unauthorized = await requireAdmin()
+  if (unauthorized) return unauthorized
+
   try {
     const weekly = await pool.query(
       'SELECT id, day_of_week, start_time, end_time FROM schedule_weekly ORDER BY day_of_week, start_time'
@@ -17,6 +21,9 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const unauthorized = await requireAdmin()
+  if (unauthorized) return unauthorized
+
   try {
     const { weekly } = await req.json()
     if (!Array.isArray(weekly)) {

@@ -20,55 +20,40 @@ export interface Therapy {
   sort_order: number
   requirements?: string[]
   created_at: string
+  deleted_at: string | null
+  is_pack: boolean
+  session_count: number | null
+  session_duration_minutes: number | null
 }
 
-export interface Booking {
+export interface BookingSession {
   id: string
-  userId: string
-  therapyId: string
-  date: string
-  time: string
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
-  paymentStatus: 'pending' | 'paid' | 'refunded'
-  createdAt: Date
+  booking_id: string
+  session_number: number
+  start_time: string
+  end_time: string
+  status: string
+  created_at: string
 }
 
 export interface Payment {
   id: string
-  bookingId: string
-  userId: string
-  amount: number
+  booking_id: string
+  user_id: string
+  amount_cents: number
   currency: string
-  status: 'pending' | 'succeeded' | 'failed' | 'refunded'
-  stripePaymentId?: string
-  createdAt: Date
+  status: string
+  stripe_payment_id?: string
+  created_at: string
 }
 
 export interface Invoice {
   id: string
-  bookingId: string
-  userId: string
-  invoiceNumber: string
-  pdfUrl?: string
-  amount: number
-  createdAt: Date
-}
-
-export interface ScheduleSlot {
-  dayOfWeek: number
-  startTime: string
-  endTime: string
-}
-
-export interface BlockedDate {
-  date: string
-  reason?: string
-}
-
-export interface BlockedTime {
-  date: string
-  time: string
-  reason?: string
+  booking_id: string
+  user_id: string
+  invoice_number: string
+  amount_cents: number
+  created_at: string
 }
 
 declare module 'next-auth' {

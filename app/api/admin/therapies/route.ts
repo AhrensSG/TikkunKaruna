@@ -17,6 +17,7 @@ export async function GET() {
      ) AS requirements
      FROM therapies t
      LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
+     WHERE t.deleted_at IS NULL
      GROUP BY t.id
      ORDER BY t.created_at DESC`
   )
@@ -31,17 +32,17 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements } = await req.json()
+    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
 
     if (!name || !duration_minutes || !price_cents) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
     const result = await pool.query(
-      `INSERT INTO therapies (name, description, duration_minutes, price_cents, is_active, image_url, video_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO therapies (name, description, duration_minutes, price_cents, is_active, image_url, video_url, is_pack, session_count, session_duration_minutes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [name, description || '', duration_minutes, price_cents, is_active ?? true, image_url || '', video_url || '']
+      [name, description || '', duration_minutes, price_cents, is_active ?? true, image_url || '', video_url || '', is_pack ?? false, session_count ?? null, session_duration_minutes ?? null]
     )
 
     const therapy = result.rows[0]

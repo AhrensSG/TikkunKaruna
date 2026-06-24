@@ -2,9 +2,30 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Camera, Save, Loader2 } from "lucide-react"
+import { Camera, Save, Loader2, ChevronDown } from "lucide-react"
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
+
+const COUNTRIES = [
+  { code: "ES", name: "España", dial: "+34", flag: "🇪🇸" },
+  { code: "AR", name: "Argentina", dial: "+54", flag: "🇦🇷" },
+  { code: "MX", name: "México", dial: "+52", flag: "🇲🇽" },
+  { code: "CO", name: "Colombia", dial: "+57", flag: "🇨🇴" },
+  { code: "CL", name: "Chile", dial: "+56", flag: "🇨🇱" },
+  { code: "PE", name: "Perú", dial: "+51", flag: "🇵🇪" },
+  { code: "UY", name: "Uruguay", dial: "+598", flag: "🇺🇾" },
+  { code: "EC", name: "Ecuador", dial: "+593", flag: "🇪🇨" },
+  { code: "VE", name: "Venezuela", dial: "+58", flag: "🇻🇪" },
+  { code: "CR", name: "Costa Rica", dial: "+506", flag: "🇨🇷" },
+  { code: "PA", name: "Panamá", dial: "+507", flag: "🇵🇦" },
+  { code: "DO", name: "República Dominicana", dial: "+1", flag: "🇩🇴" },
+  { code: "US", name: "Estados Unidos", dial: "+1", flag: "🇺🇸" },
+  { code: "GB", name: "Reino Unido", dial: "+44", flag: "🇬🇧" },
+  { code: "FR", name: "Francia", dial: "+33", flag: "🇫🇷" },
+  { code: "DE", name: "Alemania", dial: "+49", flag: "🇩🇪" },
+  { code: "IT", name: "Italia", dial: "+39", flag: "🇮🇹" },
+  { code: "PT", name: "Portugal", dial: "+351", flag: "🇵🇹" },
+]
 
 export default function ProfilePage() {
   const { data: session, update } = useSession()
@@ -15,6 +36,7 @@ export default function ProfilePage() {
     phone: "",
     image: session?.user?.image || "",
   })
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -22,7 +44,10 @@ export default function ProfilePage() {
 
   const [imgError, setImgError] = useState(false)
   const [passwordForm, setPasswordForm] = useState({ current: "", newPwd: "", confirm: "" })
+  const [countryDial, setCountryDial] = useState("+34")
+  const [countryOpen, setCountryOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const countryRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -38,16 +63,36 @@ export default function ProfilePage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.user) return
+        const existingPhone = data.user.phone || ""
+        let dial = "+34"
+        let num = existingPhone
+        const matched = COUNTRIES.find((c) => existingPhone.startsWith(c.dial))
+        if (matched) {
+          dial = matched.dial
+          num = existingPhone.slice(matched.dial.length)
+        }
+        setCountryDial(dial)
+        setPhoneNumber(num)
         setForm({
           name: data.user.name || session.user.name || "",
           email: data.user.email || session.user.email || "",
-          phone: data.user.phone || "",
+          phone: existingPhone,
           image: data.user.image || session.user.image || "",
         })
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [session?.user?.id])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
+        setCountryOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -80,7 +125,7 @@ export default function ProfilePage() {
     setMessage(null)
 
     try {
-      const body: any = { name: form.name, phone: form.phone, image: form.image }
+      const body: any = { name: form.name, phone: countryDial + phoneNumber, image: form.image }
 
       if (passwordForm.newPwd) {
         if (passwordForm.newPwd !== passwordForm.confirm) {
@@ -196,13 +241,44 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">Teléfono</label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
+              <div className="flex">
+                <div className="relative" ref={countryRef}>
+                  <button
+                    type="button"
+                    onClick={() => setCountryOpen(!countryOpen)}
+                    className="flex items-center gap-1 h-full border border-gray-300 rounded-l-lg px-2.5 py-2 text-sm bg-gray-50 hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  >
+                    <span className="text-base leading-none">{COUNTRIES.find((c) => c.dial === countryDial)?.flag}</span>
+                    <span className="text-gray-700 text-sm font-medium">{countryDial}</span>
+                    <ChevronDown size={14} className="text-gray-400" />
+                  </button>
+                  {countryOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-52 overflow-y-auto">
+                      {COUNTRIES.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => { setCountryDial(c.dial); setCountryOpen(false) }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-purple-50 transition-colors ${
+                            countryDial === c.dial ? "bg-purple-50 text-purple-700 font-medium" : "text-gray-700"
+                          }`}
+                        >
+                          <span className="text-base leading-none">{c.flag}</span>
+                          <span className="flex-1">{c.name}</span>
+                          <span className="text-gray-400 text-xs">{c.dial}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="600 00 00 00"
+                  className="flex-1 border border-l-0 border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
             </div>
           </div>
         </div>

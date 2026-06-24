@@ -32,5 +32,17 @@ export async function GET() {
     [session.user.id]
   )
 
-  return NextResponse.json({ bookings: result.rows })
+  const bookings = result.rows
+  for (const booking of bookings) {
+    const sessions = await pool.query(
+      `SELECT id, session_number, start_time, end_time, status
+       FROM booking_sessions
+       WHERE booking_id = $1
+       ORDER BY session_number ASC`,
+      [booking.id]
+    )
+    booking.sessions = sessions.rows
+  }
+
+  return NextResponse.json({ bookings })
 }

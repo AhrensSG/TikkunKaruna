@@ -3,12 +3,7 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
       allow read;
-    }
-    match /therapies/{allPaths=**} {
-      allow write: if true;
-    }
-    match /avatars/{allPaths=**} {
-      allow write: if true;
+      allow write: if false;
     }
   }
 }

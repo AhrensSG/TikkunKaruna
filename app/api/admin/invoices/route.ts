@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import pool from "@/lib/db"
+import { requireAdmin } from "@/lib/auth-helpers"
 
 export async function GET() {
+  const unauthorized = await requireAdmin()
+  if (unauthorized) return unauthorized
+
   try {
     const { rows } = await pool.query(
       `SELECT i.id, i.invoice_number, i.amount_cents, i.created_at,

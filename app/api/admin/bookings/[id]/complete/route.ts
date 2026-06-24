@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import pool from "@/lib/db"
 import { sendEmail, sessionCompletedHtml } from "@/emails"
+import { requireAdmin } from "@/lib/auth-helpers"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireAdmin()
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const { notes } = await req.json()
@@ -24,6 +28,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const b = bookings[0]
+
+    await pool.query(
+      `UPDATE booking_sessions SET status = 'completed'
+       WHERE booking_id = $1 AND status = 'confirmed'`,
+      [id]
+    )
 
     if (b.admin_notes) {
       await sendEmail(

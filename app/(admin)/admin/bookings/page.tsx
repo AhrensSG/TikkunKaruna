@@ -1,8 +1,19 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { CalendarDays, Search, X, Loader2, MessageSquare, Calendar as CalendarIcon } from 'lucide-react'
-import Calendar from '@/components/Calendar'
+import { useEffect, useState, useMemo, Fragment } from 'react'
+import { CalendarDays, Search, X, Loader2, MessageSquare, Calendar as CalendarIcon, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import CompleteSessionModal from '@/components/admin/CompleteSessionModal'
+import RescheduleModal from '@/components/admin/RescheduleModal'
+import ViewNotesModal from '@/components/admin/ViewNotesModal'
+
+interface BookingSession {
+  id: string
+  session_number: number
+  start_time: string
+  end_time: string
+  status: string
+  admin_notes: string | null
+}
 
 interface Booking {
   id: string
@@ -16,6 +27,9 @@ interface Booking {
   therapy_name: string
   price_cents: number
   admin_notes: string | null
+  is_pack: boolean
+  session_count: number | null
+  sessions: BookingSession[]
 }
 
 const statusColors: Record<string, string> = {
@@ -30,6 +44,7 @@ export default function AdminBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterType, setFilterType] = useState<string>('all')
 
   const [completing, setCompleting] = useState<Booking | null>(null)
   const [notes, setNotes] = useState('')
@@ -46,6 +61,8 @@ export default function AdminBookingsPage() {
   const [rescheduleMonth, setRescheduleMonth] = useState(new Date().getMonth() + 1)
   const [rescheduleYear, setRescheduleYear] = useState(new Date().getFullYear())
   const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch('/api/admin/bookings')
@@ -99,27 +116,59 @@ export default function AdminBookingsPage() {
     if (filterStatus !== 'all') {
       result = result.filter((b) => b.status === filterStatus)
     }
+    if (filterType === 'pack') {
+      result = result.filter((b) => b.is_pack)
+    } else if (filterType === 'single') {
+      result = result.filter((b) => !b.is_pack)
+    }
     return result
-  }, [bookings, search, filterStatus])
+  }, [bookings, search, filterStatus, filterType])
 
   const handleComplete = async () => {
     if (!completing) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/bookings/${completing.id}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setBookings((prev) =>
-          prev.map((b) => (b.id === completing.id ? { ...b, status: 'completed', admin_notes: data.booking.admin_notes } : b))
-        )
-        setCompleting(null)
-        setNotes('')
+      if (completing.is_pack && selectedSession) {
+        const res = await fetch(`/api/admin/booking-sessions/${selectedSession}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setBookings((prev) =>
+            prev.map((b) => {
+              if (b.id !== completing.id) return b
+              const updatedSessions = (b.sessions || []).map((s) =>
+                s.id === selectedSession ? { ...s, status: 'completed', admin_notes: data.session.admin_notes } : s
+              )
+              const allCompleted = updatedSessions.every((s) => s.status === 'completed')
+              return { ...b, sessions: updatedSessions, status: allCompleted ? 'completed' : b.status }
+            })
+          )
+          setCompleting(null)
+          setNotes('')
+          setSelectedSession(null)
+        } else {
+          alert('Error al completar la sesión')
+        }
       } else {
-        alert('Error al completar la sesión')
+        const res = await fetch(`/api/admin/bookings/${completing.id}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setBookings((prev) =>
+            prev.map((b) => (b.id === completing.id ? { ...b, status: 'completed', admin_notes: data.booking.admin_notes, sessions: (b.sessions || []).map((s) => ({ ...s, status: 'completed' })) } : b))
+          )
+          setCompleting(null)
+          setNotes('')
+          setSelectedSession(null)
+        } else {
+          alert('Error al completar la sesión')
+        }
       }
     } catch {
       alert('Error de conexión')
@@ -166,10 +215,17 @@ export default function AdminBookingsPage() {
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
         >
           <option value="all">Todos los estados</option>
-          <option value="pending">Pendientes</option>
           <option value="confirmed">Confirmadas</option>
-          <option value="cancelled">Canceladas</option>
           <option value="completed">Completadas</option>
+        </select>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
+        >
+          <option value="all">Todas</option>
+          <option value="single">Terapias</option>
+          <option value="pack">Packs</option>
         </select>
       </div>
 
@@ -187,51 +243,129 @@ export default function AdminBookingsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((b) => (
-                <tr
-                  key={b.id}
-                  onClick={() => {
-                    if (b.status === 'confirmed') { setCompleting(b); setNotes('') }
-                    else if (b.status === 'completed' && b.admin_notes) setViewNotes({ name: b.user_name, notes: b.admin_notes })
-                  }}
-                  className={`border-b border-gray-100 ${
-                    b.status === 'confirmed' || (b.status === 'completed' && b.admin_notes)
-                      ? 'cursor-pointer hover:bg-gray-50'
-                      : ''
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{b.user_name}</span>
-                    <span className="text-gray-500 text-xs block">{b.user_email}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{b.therapy_name}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {new Date(b.start_time).toLocaleDateString('es-ES', {
-                      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                    })}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{b.price_cents / 100} €</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {b.status === 'pending' ? 'Pendiente' : b.status === 'confirmed' ? 'Confirmada' : b.status === 'cancelled' ? 'Cancelada' : b.status === 'completed' ? 'Completada' : b.status}
-                    </span>
-                    {b.admin_notes && (
-                      <MessageSquare size={12} className="ml-1.5 text-purple-500 inline align-middle" />
+              {filtered.map((b) => {
+                const isExpanded = expandedRows.has(b.id)
+                const hasSessions = b.is_pack && b.sessions && b.sessions.length > 0
+                return (
+                  <Fragment key={b.id}>
+                    <tr
+                      onClick={() => {
+                        if (b.is_pack) {
+                          setExpandedRows((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(b.id)) next.delete(b.id)
+                            else next.add(b.id)
+                            return next
+                          })
+                        } else if (b.status === 'confirmed') {
+                          setCompleting(b); setNotes(''); setSelectedSession(null)
+                        } else if (b.status === 'completed' && b.admin_notes) {
+                          setViewNotes({ name: b.user_name, notes: b.admin_notes })
+                        }
+                      }}
+                      className={`border-b border-gray-100 ${
+                        b.is_pack || b.status === 'confirmed' || (b.status === 'completed' && b.admin_notes)
+                          ? 'cursor-pointer hover:bg-gray-50'
+                          : ''
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-gray-900">{b.user_name}</span>
+                        <span className="text-gray-500 text-xs block">{b.user_email}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-gray-600">{b.therapy_name}</span>
+                        {b.is_pack && (
+                          <span className="inline-flex items-center gap-1 ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 align-middle">
+                            <Package size={10} />
+                            Pack
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {hasSessions ? (
+                          <span>
+                            {b.sessions.length} sesiones
+                            {isExpanded ? <ChevronDown size={12} className="inline ml-1 text-gray-400" /> : <ChevronRight size={12} className="inline ml-1 text-gray-400" />}
+                          </span>
+                        ) : (
+                          new Date(b.start_time).toLocaleDateString('es-ES', {
+                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-gray-900">{b.price_cents / 100} €</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {b.status === 'pending' ? 'Pendiente' : b.status === 'confirmed' ? 'Confirmada' : b.status === 'cancelled' ? 'Cancelada' : b.status === 'completed' ? 'Completada' : b.status}
+                        </span>
+                        {b.admin_notes && (
+                          <MessageSquare size={12} className="ml-1.5 text-purple-500 inline align-middle" />
+                        )}
+                        {hasSessions && (
+                          <span className="text-[10px] text-gray-400 ml-1">
+                            {b.sessions.filter((s) => s.status === 'completed').length}/{b.sessions.length}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {b.status === 'confirmed' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setRescheduling(b); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setSelectedSession(null); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
+                            className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                          >
+                            <CalendarIcon size={13} />
+                            Reprogramar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    {isExpanded && hasSessions && (
+                      <>
+                        {b.sessions.map((s) => (
+                          <tr key={s.id} className={`border-b border-gray-100 bg-gray-50 ${s.status === 'confirmed' ? 'cursor-pointer hover:bg-purple-50' : ''}`}
+                            onClick={() => {
+                              if (s.status === 'confirmed') {
+                                setCompleting(b); setNotes(''); setSelectedSession(s.id)
+                              } else if (s.status === 'completed' && s.admin_notes) {
+                                setViewNotes({ name: b.user_name, notes: s.admin_notes })
+                              }
+                            }}
+                          >
+                            <td className="px-4 py-2 pl-10">
+                              <span className="text-xs text-gray-500">Sesión {s.session_number}</span>
+                            </td>
+                            <td className="px-4 py-2 text-xs text-gray-500"></td>
+                            <td className="px-4 py-2 text-xs text-gray-600">
+                              {new Date(s.start_time).toLocaleDateString('es-ES', {
+                                day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </td>
+                            <td className="px-4 py-2"></td>
+                            <td className="px-4 py-2">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
+                                {s.status === 'confirmed' ? 'Confirmada' : s.status === 'completed' ? 'Completada' : s.status}
+                              </span>
+                              {s.admin_notes && <MessageSquare size={10} className="ml-1 text-purple-500 inline" />}
+                            </td>
+                            <td className="px-4 py-2">
+                              {s.status === 'confirmed' && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setRescheduling(b); setSelectedSession(s.id); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
+                                  className="flex items-center gap-1 text-[10px] font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                                >
+                                  <CalendarIcon size={11} />
+                                  Reprogramar
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {b.status === 'confirmed' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setRescheduling(b); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
-                        className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
-                      >
-                        <CalendarIcon size={13} />
-                        Reprogramar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                  </Fragment>
+                )
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-gray-400">
@@ -245,188 +379,92 @@ export default function AdminBookingsPage() {
         </div>
       </div>
 
-      {/* Modal: Completar sesión */}
       {completing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Completar sesión</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {completing.user_name} — {completing.therapy_name}
-            </p>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Mensaje de Inma para {completing.user_name.split(' ')[0]}
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Escribe aquí tu mensaje post-sesión..."
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
-              />
-              <p className="text-xs text-gray-400 mt-1">Opcional. Se mostrará al cliente en sus sesiones completadas.</p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 mt-6">
-              <button
-                onClick={() => setCompleting(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleComplete}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                {saving ? 'Guardando...' : 'Marcar como completada'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CompleteSessionModal
+          booking={completing}
+          notes={notes}
+          selectedSession={selectedSession}
+          saving={saving}
+          onNotesChange={setNotes}
+          onSessionSelect={setSelectedSession}
+          onComplete={handleComplete}
+          onClose={() => { setCompleting(null); setSelectedSession(null) }}
+        />
       )}
 
-      {/* Modal: Reprogramar */}
       {rescheduling && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Reprogramar sesión</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {rescheduling.user_name} — {rescheduling.therapy_name}
-            </p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Selecciona una fecha disponible
-              </label>
-              <div className="border border-gray-200 rounded-xl p-3">
-                <Calendar
-                  year={rescheduleYear}
-                  month={rescheduleMonth}
-                  selectedDate={rescheduleDate}
-                  onSelect={(date) => { setRescheduleDate(date); setSelectedSlot('') }}
-                  onPrevMonth={() => {
-                    if (rescheduleMonth === 1) { setRescheduleMonth(12); setRescheduleYear(rescheduleYear - 1) }
-                    else setRescheduleMonth(rescheduleMonth - 1)
-                  }}
-                  onNextMonth={() => {
-                    if (rescheduleMonth === 12) { setRescheduleMonth(1); setRescheduleYear(rescheduleYear + 1) }
-                    else setRescheduleMonth(rescheduleMonth + 1)
-                  }}
-                  availableDates={availableDates}
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Días con disponibilidad
-              </p>
-            </div>
-
-            {rescheduleDate && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Horarios disponibles — {new Date(rescheduleDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
-                </label>
-                {loadingSlots ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 py-3">
-                    <Loader2 size={14} className="animate-spin" />
-                    Cargando horarios...
-                  </div>
-                ) : availableSlots.length === 0 ? (
-                  <p className="text-sm text-red-500 py-3">No hay horarios disponibles para esta fecha</p>
-                ) : (
-                  <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                          selectedSlot === slot
-                            ? 'border-purple-600 bg-purple-50 text-purple-700 font-medium'
-                            : 'border-gray-200 text-gray-700 hover:border-purple-300'
-                        }`}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-3 mt-6 border-t border-gray-100 pt-4">
-              <button
-                onClick={() => { setRescheduling(null); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={async () => {
-                  if (!selectedSlot) return
-                  setSavingReschedule(true)
-                  try {
-                    const res = await fetch(`/api/admin/bookings/${rescheduling.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ start_time: `${rescheduleDate}T${selectedSlot}:00` }),
-                    })
-                    if (res.ok) {
-                      const data = await res.json()
-                      setBookings((prev) =>
-                        prev.map((b) =>
-                          b.id === rescheduling.id
-                            ? { ...b, start_time: data.booking.start_time, end_time: data.booking.end_time }
-                            : b
-                        )
+        <RescheduleModal
+          booking={rescheduling}
+          selectedSession={selectedSession}
+          rescheduleDate={rescheduleDate}
+          selectedSlot={selectedSlot}
+          availableSlots={availableSlots}
+          availableDates={availableDates}
+          loadingSlots={loadingSlots}
+          saving={savingReschedule}
+          rescheduleMonth={rescheduleMonth}
+          rescheduleYear={rescheduleYear}
+          onSessionSelect={setSelectedSession}
+          onDateSelect={(date) => { setRescheduleDate(date); setSelectedSlot('') }}
+          onSlotSelect={setSelectedSlot}
+          onPrevMonth={() => {
+            if (rescheduleMonth === 1) { setRescheduleMonth(12); setRescheduleYear(rescheduleYear - 1) }
+            else setRescheduleMonth(rescheduleMonth - 1)
+          }}
+          onNextMonth={() => {
+            if (rescheduleMonth === 12) { setRescheduleMonth(1); setRescheduleYear(rescheduleYear + 1) }
+            else setRescheduleMonth(rescheduleMonth + 1)
+          }}
+          onReschedule={async () => {
+            if (!selectedSlot) return
+            setSavingReschedule(true)
+            try {
+              const body: Record<string, string> = { start_time: new Date(`${rescheduleDate}T${selectedSlot}:00`).toISOString() }
+              if (selectedSession) body.session_id = selectedSession
+              const res = await fetch(`/api/admin/bookings/${rescheduling.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              })
+              if (res.ok) {
+                const data = await res.json()
+                setBookings((prev) =>
+                  prev.map((b) => {
+                    if (b.id !== rescheduling.id) return b
+                    if (selectedSession) {
+                      const updatedSessions = (b.sessions || []).map((s) =>
+                        s.id === selectedSession ? { ...s, start_time: data.booking.start_time, end_time: data.booking.end_time } : s
                       )
-                      setRescheduling(null)
-                      setRescheduleDate('')
-                      setAvailableSlots([])
-                      setSelectedSlot('')
-                      setRescheduleMonth(new Date().getMonth() + 1)
-                      setRescheduleYear(new Date().getFullYear())
-                    } else {
-                      alert('Error al reprogramar')
+                      return { ...b, sessions: updatedSessions }
                     }
-                  } catch {
-                    alert('Error de conexión')
-                  }
-                  setSavingReschedule(false)
-                }}
-                disabled={!selectedSlot || savingReschedule}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-              >
-                {savingReschedule && <Loader2 size={14} className="animate-spin" />}
-                {savingReschedule ? 'Guardando...' : 'Confirmar reprogramación'}
-              </button>
-            </div>
-          </div>
-        </div>
+                    return { ...b, start_time: data.booking.start_time, end_time: data.booking.end_time }
+                  })
+                )
+                setRescheduling(null)
+                setRescheduleDate('')
+                setAvailableSlots([])
+                setSelectedSlot('')
+                setSelectedSession(null)
+                setRescheduleMonth(new Date().getMonth() + 1)
+                setRescheduleYear(new Date().getFullYear())
+              } else {
+                alert('Error al reprogramar')
+              }
+            } catch {
+              alert('Error de conexión')
+            }
+            setSavingReschedule(false)
+          }}
+          onClose={() => { setRescheduling(null); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setSelectedSession(null); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
+        />
       )}
 
       {viewNotes && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageSquare size={18} className="text-purple-600" />
-              <h2 className="text-lg font-bold text-gray-900">Mensaje de Inma</h2>
-            </div>
-            <p className="text-xs text-gray-400 mb-3">Para {viewNotes.name}</p>
-            <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-              {viewNotes.notes}
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setViewNotes(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ViewNotesModal
+          name={viewNotes.name}
+          notes={viewNotes.notes}
+          onClose={() => setViewNotes(null)}
+        />
       )}
     </div>
   )

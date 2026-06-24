@@ -1,8 +1,15 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2, Package } from 'lucide-react'
 
+interface BookingSession {
+  id: string
+  session_number: number
+  start_time: string
+  end_time: string
+  status: string
+}
 
 interface Booking {
   id: string
@@ -13,6 +20,8 @@ interface Booking {
   user_email: string
   therapy_name: string
   price_cents: number
+  is_pack: boolean
+  sessions: BookingSession[]
 }
 
 const statusColors: Record<string, string> = {
@@ -66,9 +75,17 @@ export default function AdminPage() {
   const daysWithBookings = useMemo(() => {
     const set = new Set<string>()
     for (const b of bookings) {
-      if (b.status === 'confirmed' || b.status === 'pending') {
+      if (b.status === 'confirmed') {
         const d = new Date(b.start_time)
         set.add(toDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()))
+      }
+      if (b.sessions) {
+        for (const s of b.sessions) {
+          if (s.status === 'confirmed') {
+            const d = new Date(s.start_time)
+            set.add(toDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()))
+          }
+        }
       }
     }
     return set
@@ -76,19 +93,41 @@ export default function AdminPage() {
 
   const dayBookings = useMemo(() => {
     if (!selectedDate) return []
-    return bookings
-      .filter((b) => {
-        const d = new Date(b.start_time)
-        return toDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()) === selectedDate
-      })
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    const result: { booking: Booking; session?: BookingSession }[] = []
+    for (const b of bookings) {
+      const d = new Date(b.start_time)
+      if (toDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()) === selectedDate) {
+        result.push({ booking: b })
+      }
+      if (b.sessions) {
+        for (const s of b.sessions) {
+          const sd = new Date(s.start_time)
+          if (toDateStr(sd.getFullYear(), sd.getMonth() + 1, sd.getDate()) === selectedDate && s.status === 'confirmed') {
+            result.push({ booking: b, session: s })
+          }
+        }
+      }
+    }
+    return result.sort((a, b) => {
+      const aTime = a.session ? new Date(a.session.start_time).getTime() : new Date(a.booking.start_time).getTime()
+      const bTime = b.session ? new Date(b.session.start_time).getTime() : new Date(b.booking.start_time).getTime()
+      return aTime - bTime
+    })
   }, [bookings, selectedDate])
 
   const upcomingBookings = useMemo(() => {
     const now = new Date()
     return bookings
-      .filter((b) => new Date(b.start_time) > now && (b.status === 'confirmed' || b.status === 'pending'))
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .filter((b) => b.status === 'confirmed')
+      .flatMap((b) => {
+        if (b.sessions && b.sessions.length > 0) {
+          return b.sessions
+            .filter((s) => s.status === 'confirmed' && new Date(s.start_time) > now)
+            .map((s) => ({ ...b, id: s.id, start_time: s.start_time, end_time: s.end_time, session: s }))
+        }
+        return new Date(b.start_time) > now ? [b] : []
+      })
+      .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .slice(0, 10)
   }, [bookings])
 
@@ -189,16 +228,20 @@ export default function AdminPage() {
             <p className="text-sm text-gray-400 text-center py-8">No hay sesiones para esta fecha</p>
           ) : (
             <div className="space-y-2">
-              {dayBookings.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              {dayBookings.map(({ booking: b, session: s }) => (
+                <div key={s ? s.id : b.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
                     {b.user_name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{b.user_name}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {b.user_name}
+                      {s && <span className="text-xs text-purple-500 ml-1">S{s.session_number}</span>}
+                    </p>
                     <p className="text-xs text-gray-500 flex items-center gap-1">
                       <Clock size={11} />
-                      {formatTime(b.start_time)} — {formatTime(b.end_time)} · {b.therapy_name}
+                      {s ? `${formatTime(s.start_time)} — ${formatTime(s.end_time)}` : `${formatTime(b.start_time)} — ${formatTime(b.end_time)}`} · {b.therapy_name}
+                      {b.is_pack && <Package size={10} className="text-purple-400 ml-0.5" />}
                     </p>
                   </div>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
@@ -223,15 +266,18 @@ export default function AdminPage() {
           <p className="text-sm text-gray-400 text-center py-8">No hay próximas sesiones</p>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {upcomingBookings.map((b) => (
+            {upcomingBookings.map((b: any) => (
               <div key={b.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                 <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
                   {b.user_name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{b.user_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatDateShort(b.start_time)} · {formatTime(b.start_time)} — {formatTime(b.end_time)} · {b.therapy_name}
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    {formatDateShort(b.start_time)} · {formatTime(b.start_time)} — {formatTime(b.end_time)}
+                    {b.session && <span className="text-xs font-medium text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full mx-1">Sesión {b.session.session_number}</span>}
+                    {' · '}{b.therapy_name}
+                    {b.is_pack && <Package size={10} className="text-purple-400 ml-0.5" />}
                   </p>
                 </div>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>

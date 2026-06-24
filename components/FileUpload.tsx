@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
-import { storage } from '@/lib/firebase'
 import { Upload, X, FileVideo, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface FileUploadProps {
@@ -23,7 +21,7 @@ export default function FileUpload({
   label = 'Imagen',
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isVideo = accept === 'video/*'
@@ -34,27 +32,30 @@ export default function FileUpload({
     if (!file) return
 
     setUploading(true)
-    setProgress(0)
+    setError('')
 
-    const fileName = `${Date.now()}-${file.name}`
-    const storageRef = ref(storage, `${folder}/${fileName}`)
-    const uploadTask = uploadBytesResumable(storageRef, file)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', folder)
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        setProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100))
-      },
-      (error) => {
-        console.error('Upload error:', error)
-        setUploading(false)
-      },
-      async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref)
-        onUpload(url)
-        setUploading(false)
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error al subir archivo')
       }
-    )
+
+      const data = await res.json()
+      onUpload(data.url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir archivo')
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -80,16 +81,14 @@ export default function FileUpload({
       )}
 
       {uploading && (
-        <div className="flex items-center gap-3 text-sm text-gray-600">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
           <Loader2 size={16} className="animate-spin" />
-          <span>Subiendo... {progress}%</span>
-          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-purple-600 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          Subiendo...
         </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-600 mt-1">{error}</p>
       )}
 
       {hasFile && !uploading && (

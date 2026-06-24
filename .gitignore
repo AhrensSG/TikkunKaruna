@@ -40,6 +40,9 @@ temp-*.json
 # vercel
 .vercel
 
+# test artifacts
+test-output.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

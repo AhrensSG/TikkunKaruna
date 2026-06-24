@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { generateInvoicePdf } from '@/lib/pdf'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireAdmin()
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
     const result = await pool.query(
-      `SELECT i.*, t.name AS therapy_name, u.name AS user_name, u.email AS user_email
+      `SELECT i.*, t.name AS therapy_name, t.price_cents AS therapy_price_cents, t.duration_minutes AS therapy_duration_minutes, u.name AS user_name, u.email AS user_email
        FROM invoices i
        JOIN bookings b ON b.id = i.booking_id
        JOIN therapies t ON t.id = b.therapy_id
@@ -29,6 +33,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       therapy_name: inv.therapy_name,
       user_name: inv.user_name,
       user_email: inv.user_email,
+      therapy_price_cents: inv.therapy_price_cents,
+      therapy_duration_minutes: inv.therapy_duration_minutes,
     })
 
     return new NextResponse(new Uint8Array(pdfBuffer), {

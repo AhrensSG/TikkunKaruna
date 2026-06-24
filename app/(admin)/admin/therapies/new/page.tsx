@@ -18,6 +18,9 @@ export default function NewTherapyPage() {
   const [image_url, setImageUrl] = useState('')
   const [video_url, setVideoUrl] = useState('')
   const [requirements, setRequirements] = useState<string[]>([''])
+  const [is_pack, setIsPack] = useState(false)
+  const [session_count, setSessionCount] = useState('3')
+  const [session_duration_minutes, setSessionDurationMinutes] = useState('60')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,12 +34,15 @@ export default function NewTherapyPage() {
       body: JSON.stringify({
         name,
         description,
-        duration_minutes: parseInt(duration_minutes) || 0,
+        duration_minutes: is_pack ? (parseInt(session_count) || 1) * (parseInt(session_duration_minutes) || 60) : (parseInt(duration_minutes) || 0),
         price_cents: Math.round((parseFloat(price_euros) || 0) * 100),
         is_active,
         image_url,
         video_url,
         requirements: filteredReqs,
+        is_pack,
+        session_count: is_pack ? (parseInt(session_count) || 1) : null,
+        session_duration_minutes: is_pack ? (parseInt(session_duration_minutes) || 60) : null,
       }),
     })
 
@@ -135,6 +141,48 @@ export default function NewTherapyPage() {
               <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:bg-purple-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
             <span className="text-sm text-gray-700">Terapia activa</span>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <label className="relative inline-flex items-center cursor-pointer gap-3">
+              <input
+                type="checkbox"
+                checked={is_pack}
+                onChange={(e) => setIsPack(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:bg-purple-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+              <span className="text-sm font-semibold text-gray-700">Es un pack (varias sesiones)</span>
+            </label>
+
+            {is_pack && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Número de sesiones</label>
+                  <input
+                    type="number"
+                    value={session_count}
+                    onChange={(e) => setSessionCount(e.target.value)}
+                    min={2}
+                    max={20}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Duración por sesión (minutos)</label>
+                  <input
+                    type="number"
+                    value={session_duration_minutes}
+                    onChange={(e) => setSessionDurationMinutes(e.target.value)}
+                    min={15}
+                    step={15}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

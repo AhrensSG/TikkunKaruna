@@ -39,15 +39,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const { id } = await params
-    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements } = await req.json()
+    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
 
     const result = await pool.query(
       `UPDATE therapies
        SET name = $1, description = $2, duration_minutes = $3, price_cents = $4,
-           is_active = $5, image_url = $6, video_url = $7
-       WHERE id = $8
+           is_active = $5, image_url = $6, video_url = $7,
+           is_pack = $8, session_count = $9, session_duration_minutes = $10
+       WHERE id = $11
        RETURNING *`,
-      [name, description || '', duration_minutes, price_cents, is_active ?? true, image_url || '', video_url || '', id]
+      [name, description || '', duration_minutes, price_cents, is_active ?? true, image_url || '', video_url || '', is_pack ?? false, session_count ?? null, session_duration_minutes ?? null, id]
     )
 
     if (result.rows.length === 0) {
@@ -84,7 +85,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   try {
     const { id } = await params
-    const { is_active, sort_order } = await req.json()
+    const { is_active, sort_order, restore } = await req.json()
 
     const fields: string[] = []
     const values: any[] = []
@@ -98,6 +99,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       fields.push(`sort_order = $${idx++}`)
       values.push(sort_order)
     }
+    if (restore === true) {
+      fields.push(`deleted_at = NULL`)
+    }
 
     if (fields.length === 0) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
@@ -105,7 +109,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     values.push(id)
     const result = await pool.query(
-      `UPDATE therapies SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, is_active, sort_order`,
+      `UPDATE therapies SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, name, is_active, sort_order, deleted_at`,
       values
     )
 
@@ -130,7 +134,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const { id } = await params
 
     const result = await pool.query(
-      'DELETE FROM therapies WHERE id = $1 RETURNING id',
+      `UPDATE therapies SET is_active = false, deleted_at = NOW() WHERE id = $1 RETURNING id`,
       [id]
     )
 

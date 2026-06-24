@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
-  Clock, ArrowRight,
+  Clock, ArrowRight, Package,
 } from "lucide-react";
 import pool from "@/lib/db";
 
@@ -9,8 +9,9 @@ const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
 export default async function ServicesSection() {
   const result = await pool.query(
-    `     SELECT id, name, description, duration_minutes, price_cents, image_url
-     FROM therapies WHERE is_active = true AND sort_order > 0
+    `     SELECT id, name, description, duration_minutes, price_cents, image_url,
+            is_pack, session_count, session_duration_minutes
+     FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
      ORDER BY sort_order ASC, created_at DESC LIMIT 6`
   )
   const therapies = result.rows
@@ -28,6 +29,9 @@ export default async function ServicesSection() {
     price: `${(t.price_cents / 100).toFixed(0)} €`,
     tag: i === 0 ? 'Nueva' : null,
     image_url: t.image_url,
+    isPack: t.is_pack,
+    sessionCount: t.session_count,
+    sessionDuration: t.session_duration_minutes,
   }))
   return (
     <section className="py-24 lg:py-32 bg-white">
@@ -50,7 +54,7 @@ export default async function ServicesSection() {
 
         {/* Service cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {services.map(({ Icon, id, name, shortDesc, duration, price, tag, image_url }) => (
+          {services.map(({ Icon, id, name, shortDesc, duration, price, tag, image_url, isPack, sessionCount, sessionDuration }) => (
             <div
               key={name}
               className="group relative flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
@@ -75,6 +79,12 @@ export default async function ServicesSection() {
               )}
 
               <div className="p-7 pt-5">
+                {isPack && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 mb-3">
+                    <Package size={11} />
+                    Pack · {sessionCount} sesiones de {sessionDuration} min
+                  </span>
+                )}
                 {/* Icon */}
                 <div className="w-12 h-12 rounded-xl bg-purple-50 group-hover:bg-gold-50 flex items-center justify-center mb-5 transition-colors duration-300">
                   <Icon size={22} className="text-purple-600 group-hover:text-gold-600 transition-colors duration-300" />
@@ -99,7 +109,7 @@ export default async function ServicesSection() {
                   href={`/reservar/${id}`}
                   className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300 group-hover:shadow-md"
                 >
-                  Reservar sesión
+                  {isPack ? 'Reservar pack' : 'Reservar sesión'}
                   <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Link>
               </div>

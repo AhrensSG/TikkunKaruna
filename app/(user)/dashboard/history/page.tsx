@@ -1,7 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, X, Clock, CalendarDays, ListChecks, MessageSquare } from "lucide-react"
+import { Loader2, X, Clock, CalendarDays, ListChecks, MessageSquare, Package } from "lucide-react"
+
+interface BookingSession {
+  id: string
+  session_number: number
+  start_time: string
+  end_time: string
+  status: string
+}
 
 interface Booking {
   id: string
@@ -14,6 +22,7 @@ interface Booking {
   payment_status: string
   admin_notes: string | null
   requirements: string[]
+  sessions?: BookingSession[]
 }
 
 const statusLabels: Record<string, string> = {
@@ -175,6 +184,26 @@ export default function HistoryPage() {
                 </span>
               </div>
             </div>
+
+            {/* Pack sessions */}
+            {selected.sessions && selected.sessions.length > 0 && (
+              <div className="mb-6">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-2">
+                  <Package size={15} className="text-purple-600" />
+                  Sesiones del pack
+                </h3>
+                <div className="space-y-2">
+                  {selected.sessions.map((s) => (
+                    <div key={s.id} className="bg-purple-50 rounded-lg p-3 text-sm">
+                      <span className="font-medium text-purple-800">Sesión {s.session_number}</span>
+                      <span className="text-gray-600 ml-2">
+                        {new Date(s.start_time).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Requirements */}
             {selected.requirements && selected.requirements.length > 0 && (
