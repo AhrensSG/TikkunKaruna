@@ -200,70 +200,122 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* Tabla */}
+      {/* Users - Desktop table / Mobile cards */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nombre</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Teléfono</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Rol</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Registro</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-700">Acciones</th>
+        {/* Desktop table */}
+        <table className="hidden sm:table w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Nombre</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Teléfono</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Rol</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Registro</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-700">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((user) => (
+              <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
+                <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                <td className="px-4 py-3 text-gray-600">{user.phone || '—'}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    user.role === 'admin'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {user.role === 'admin' ? 'Admin' : 'Usuario'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-gray-500 text-xs">
+                  {new Date(user.created_at).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => openEdit(user)}
+                      className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.id, user.name)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((user) => (
-                <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{user.phone || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {user.role === 'admin' ? 'Admin' : 'Usuario'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {new Date(user.created_at).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => openEdit(user)}
-                        className="p-2 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id, user.name)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-400">
-                    <UserCog size={36} className="mx-auto text-gray-300 mb-2" />
-                    {hasActiveFilters ? 'Ningún usuario coincide con los filtros' : 'No hay usuarios registrados'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center py-12 text-gray-400">
+                  <UserCog size={36} className="mx-auto text-gray-300 mb-2" />
+                  {hasActiveFilters ? 'Ningún usuario coincide con los filtros' : 'No hay usuarios registrados'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden divide-y divide-gray-100">
+          {filtered.map((user) => (
+            <div key={user.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1 mr-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                </div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                  user.role === 'admin'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {user.role === 'admin' ? 'Admin' : 'Usuario'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{user.phone || 'Sin teléfono'}</span>
+                <span>
+                  {new Date(user.created_at).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-100">
+                <button
+                  onClick={() => openEdit(user)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+                >
+                  <Pencil size={13} />
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(user.id, user.name)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={13} />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <UserCog size={36} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm">{hasActiveFilters ? 'Ningún usuario coincide con los filtros' : 'No hay usuarios registrados'}</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe/server'
 import pool from '@/lib/db'
 import { sendEmail, notifyAdmin, adminNewBookingHtml } from '@/emails'
 import { bookingConfirmationHtml } from '@/emails/templates'
+import { sendWhatsApp, notifyAdminWhatsApp } from '@/lib/whatsapp'
 
 async function nextInvoiceNumber(): Promise<string> {
   const { rows } = await pool.query(
@@ -30,9 +31,11 @@ async function confirmBookingFromSession(stripeSession: any) {
 
   const booking = existing.rows[0]
 
+  const country = stripeSession.customer_details?.address?.country || null
+
   await pool.query(
-    `UPDATE bookings SET status = 'confirmed', stripe_session_id = $1 WHERE id = $2`,
-    [stripeSession.id, bookingId]
+    `UPDATE bookings SET status = 'confirmed', stripe_session_id = $1, country = $2 WHERE id = $3`,
+    [stripeSession.id, country, bookingId]
   )
 
   await pool.query(
@@ -54,10 +57,10 @@ async function confirmBookingFromSession(stripeSession: any) {
   )
 
   const { rows: userRows } = await pool.query(
-    `SELECT u.email, u.name as user_name, t.id as therapy_id, t.name as therapy_name,
+    `SELECT u.email, u.phone, u.name as user_name, t.id as therapy_id, t.name as therapy_name,
             t.description as therapy_description, t.duration_minutes,
             t.is_pack, t.session_duration_minutes,
-            b.start_time
+            b.start_time, b.user_id
      FROM bookings b
      JOIN therapies t ON t.id = b.therapy_id
      JOIN users u ON u.id = b.user_id
@@ -98,6 +101,11 @@ async function confirmBookingFromSession(stripeSession: any) {
         requirements: reqs.map((r: any) => r.description),
       })
     )
+
+    const waMsg = `✅ *Reserva confirmada — ${info.therapy_name}*\n\nHola ${info.user_name}, tu reserva ha sido confirmada.\n\n📅 ${dateStr.replace(/\n/g, '\n')}\n📄 Factura: ${invoiceNumber}\n\nGracias por confiar en TikkunKaruna 💜`
+    if (info.phone) sendWhatsApp(info.phone, waMsg)
+    notifyAdminWhatsApp(`📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}\n📅 ${dateStr.replace(/\n/g, '\n')}`)
+
     notifyAdmin(
       `📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}`,
       adminNewBookingHtml(info.user_name, info.email, info.therapy_name, dateStr)

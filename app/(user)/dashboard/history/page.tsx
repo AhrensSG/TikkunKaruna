@@ -87,29 +87,30 @@ export default function HistoryPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Historial de Terapias</h1>
-        <p className="text-gray-500 text-sm mt-1">Todas tus sesiones registradas.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Historial de Terapias</h1>
+        <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">Todas tus sesiones registradas.</p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{completed.length}</p>
-          <p className="text-xs text-gray-500 mt-1">Sesiones {completed.length === 1 ? "completada" : "completadas"}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{completed.length}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{completed.length === 1 ? "Completada" : "Completadas"}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{upcoming.length}</p>
-          <p className="text-xs text-gray-500 mt-1">{upcoming.length === 1 ? "Próxima" : "Próximas"}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{upcoming.length}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{upcoming.length === 1 ? "Próxima" : "Próximas"}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{cancelled.length}</p>
-          <p className="text-xs text-gray-500 mt-1">{cancelled.length === 1 ? "Cancelada" : "Canceladas"}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{cancelled.length}</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{cancelled.length === 1 ? "Cancelada" : "Canceladas"}</p>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Desktop table / Mobile cards */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -152,6 +153,38 @@ export default function HistoryPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden divide-y divide-gray-100">
+          {bookings.length === 0 ? (
+            <div className="px-4 py-10 text-center text-gray-400 text-sm">Aún no tienes reservas.</div>
+          ) : (
+            bookings.map((b) => {
+              const label = statusLabels[b.status] || b.status
+              return (
+                <div
+                  key={b.id}
+                  onClick={() => setSelected(b)}
+                  className="p-3 space-y-1.5 cursor-pointer hover:bg-purple-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">{b.therapy_name}</p>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColor[label] || ""}`}>
+                      {label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span>{formatDate(b.start_time)}</span>
+                    <span>{formatTime(b.start_time)}</span>
+                    <span className="ml-auto font-medium text-gray-900">
+                      {b.payment_status === "succeeded" ? `${(Number(b.amount_cents) / 100).toFixed(0)} €` : "—"}
+                    </span>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
 

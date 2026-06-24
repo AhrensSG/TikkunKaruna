@@ -192,8 +192,8 @@ export default function SchedulePage() {
             const slots = getSlotsForDay(day)
             const hasValid = slots.some((s) => isValidRange(s))
             return (
-              <div key={day} className="flex items-start gap-4 py-3 border-b border-gray-100 last:border-0">
-                <div className="w-28 shrink-0 pt-1 flex items-center gap-1.5">
+              <div key={day} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 py-3 border-b border-gray-100 last:border-0">
+                <div className="sm:w-28 shrink-0 sm:pt-1 flex items-center gap-1.5">
                   {hasValid ? (
                     <CheckCircle2 size={14} className="text-green-500 shrink-0" />
                   ) : (
@@ -264,30 +264,30 @@ export default function SchedulePage() {
           <h2 className="text-lg font-semibold text-gray-900">Excepciones (días bloqueados)</h2>
         </div>
 
-        <div className="flex items-end gap-3 mb-6 flex-wrap">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
+          <div className="w-full sm:w-auto">
             <label className="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
             <input
               type="date"
               value={newExceptionDate}
               onChange={(e) => setNewExceptionDate(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
             />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="block text-xs font-medium text-gray-600 mb-1">Motivo</label>
             <input
               type="text"
               value={newExceptionReason}
               onChange={(e) => setNewExceptionReason(e.target.value)}
               placeholder="Ej: Festivo nacional"
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none w-48"
+              className="w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
             />
           </div>
           <button
             onClick={handleAddException}
             disabled={!newExceptionDate}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
             <Plus size={14} />
             Bloquear día
@@ -299,8 +299,8 @@ export default function SchedulePage() {
         ) : (
           <div className="space-y-2">
             {exceptions.map((exc) => (
-              <div key={exc.id} className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                <div className="flex items-center gap-3">
+              <div key={exc.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 gap-1 sm:gap-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <CalendarDays size={14} className="text-red-500" />
                   <span className="text-sm font-medium text-gray-900">
                     {new Date(exc.exception_date + 'T12:00:00').toLocaleDateString('es-ES', {

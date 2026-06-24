@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import pool from "@/lib/db"
 import { sendEmail, sessionCompletedHtml } from "@/emails"
 import { requireAdmin } from "@/lib/auth-helpers"
+import { sendWhatsApp } from "@/lib/whatsapp"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -18,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
          AND bookings.user_id = users.id
          AND bookings.therapy_id = therapies.id
        RETURNING bookings.id, bookings.status, bookings.admin_notes,
-                 users.name AS user_name, users.email AS user_email,
+                 users.name AS user_name, users.email AS user_email, users.phone AS user_phone,
                  therapies.name AS therapy_name`,
       [notes || null, id]
     )
@@ -41,6 +42,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         `✨ Sesión completada — ${b.therapy_name}`,
         sessionCompletedHtml(b.user_name, b.therapy_name, b.admin_notes)
       )
+
+      if (b.user_phone) {
+        sendWhatsApp(
+          b.user_phone,
+          `✨ *Sesión completada — ${b.therapy_name}*\n\nHola ${b.user_name}, tu sesión de ${b.therapy_name} ha sido completada.\n\n💜 Mensaje de Inma:\n${b.admin_notes}\n\nGracias por confiar en TikkunKaruna 🙏`
+        )
+      }
     }
 
     return NextResponse.json({ booking: { id: b.id, status: b.status, admin_notes: b.admin_notes } })

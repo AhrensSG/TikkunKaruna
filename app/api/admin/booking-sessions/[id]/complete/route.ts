@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import pool from "@/lib/db"
 import { sendEmail, sessionCompletedHtml } from "@/emails"
 import { requireAdmin } from "@/lib/auth-helpers"
+import { sendWhatsApp } from "@/lib/whatsapp"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -17,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
        WHERE bs.id = $2 AND bs.booking_id = b.id AND bs.status = 'confirmed'
          AND b.user_id = u.id AND b.therapy_id = t.id
        RETURNING bs.id, bs.session_number, bs.booking_id, bs.status, bs.admin_notes,
-                 u.name AS user_name, u.email AS user_email,
+                 u.name AS user_name, u.email AS user_email, u.phone AS user_phone,
                  t.name AS therapy_name`,
       [notes || null, id]
     )
@@ -47,6 +48,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         `✨ Sesión ${session.session_number} completada — ${session.therapy_name}`,
         sessionCompletedHtml(session.user_name, `${session.therapy_name} (Sesión ${session.session_number})`, session.admin_notes)
       )
+
+      if (session.user_phone) {
+        sendWhatsApp(
+          session.user_phone,
+          `✨ *Sesión ${session.session_number} completada — ${session.therapy_name}*\n\nHola ${session.user_name}, tu sesión ${session.session_number} de ${session.therapy_name} ha sido completada.\n\n💜 Mensaje de Inma:\n${session.admin_notes}\n\nGracias por confiar en TikkunKaruna 🙏`
+        )
+      }
     }
 
     return NextResponse.json({ session })

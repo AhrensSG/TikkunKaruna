@@ -11,6 +11,7 @@ interface InvoiceData {
   user_email: string
   therapy_price_cents?: number
   therapy_duration_minutes?: number
+  country?: string | null
 }
 
 export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
@@ -37,8 +38,9 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
   const cw = width - mL - mR
 
   const totalCents = data.amount_cents
-  const baseCents = Math.round(totalCents / 1.21)
-  const ivaCents = totalCents - baseCents
+  const isSpain = data.country === 'ES'
+  const baseCents = isSpain ? Math.round(totalCents / 1.21) : totalCents
+  const ivaCents = isSpain ? totalCents - baseCents : 0
 
   const fmt = (c: number) => `${(c / 100).toFixed(2).replace('.', ',')} \u20AC`
   const fmtDate = (d: string) =>
@@ -134,8 +136,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
   y -= 16
 
   const colDesc = mL + 8
-  const colQty = mL + cw * 0.62
-  const colUnit = mL + cw * 0.74
+  const colQty = mL + cw * (isSpain ? 0.62 : 0.70)
+  const colUnit = mL + cw * (isSpain ? 0.74 : 0.84)
   const colIva = mL + cw * 0.86
   const colTotal = mL + cw - 8
 
@@ -145,8 +147,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
 
   page.drawText('Descripci\u00F3n', { x: colDesc, y, size: 9, font: sansBold, color: purple })
   rt('Cant.', colQty)
-  rt('Precio', colUnit)
-  rt('IVA', colIva)
+  rt(isSpain ? 'Precio' : 'Importe', colUnit)
+  if (isSpain) rt('IVA', colIva)
   rt('Total', colTotal)
 
   y -= 4
@@ -161,8 +163,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     page.drawText(t, { x: x - sans.widthOfTextAtSize(t, 10), y: y + 2, size: 10, font: sans, color: text })
   }
   rtd('1', colQty)
-  rtd(fmt(baseCents), colUnit)
-  rtd(fmt(ivaCents), colIva)
+  rtd(fmt(isSpain ? baseCents : totalCents), colUnit)
+  if (isSpain) rtd(fmt(ivaCents), colIva)
   rtd(fmt(totalCents), colTotal)
 
   y -= 28
@@ -185,13 +187,17 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     page.drawText(val, { x: tVx - vf.widthOfTextAtSize(val, vfs), y, size: vfs, font: vf, color: vfc })
   }
 
-  totalRow('Base imponible', baseCents, false)
-  y -= 16
-  totalRow('IVA (21%)', ivaCents, false)
-  y -= 10
-  page.drawLine({ start: { x: tx, y }, end: { x: tVx, y }, thickness: 1, color: line })
-  y -= 18
-  totalRow('Total', totalCents, true)
+  if (isSpain) {
+    totalRow('Base imponible', baseCents, false)
+    y -= 16
+    totalRow('IVA (21%)', ivaCents, false)
+    y -= 10
+    page.drawLine({ start: { x: tx, y }, end: { x: tVx, y }, thickness: 1, color: line })
+    y -= 18
+    totalRow('Total', totalCents, true)
+  } else {
+    totalRow('Total', totalCents, true)
+  }
 
   y -= 28
 
@@ -204,6 +210,13 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
   page.drawText('Pago recibido con anterioridad a la emisi\u00F3n de esta factura', {
     x: mL, y: y - 14, size: 9, font: sans, color: muted,
   })
+  if (!isSpain) {
+    y -= 14
+    const ivaNote = data.country
+      ? `Operaci\u00F3n no sujeta a IVA (art. 69 LIVA) — cliente en ${data.country}`
+      : 'Operaci\u00F3n no sujeta a IVA (art. 69 LIVA)'
+    page.drawText(ivaNote, { x: mL, y, size: 8, font: sans, color: muted })
+  }
 
   const pagado = 'Pagado'
   page.drawText(pagado, {

@@ -186,51 +186,56 @@ export default function AdminBookingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
-          <p className="text-gray-500 text-sm mt-1">{filtered.length} reservas</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reservas</h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">{filtered.length} reservas</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por cliente, terapia o ID..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X size={14} />
-            </button>
-          )}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por cliente, terapia o ID..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="confirmed">Confirmadas</option>
+              <option value="completed">Completadas</option>
+            </select>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
+            >
+              <option value="all">Todas</option>
+              <option value="single">Terapias</option>
+              <option value="pack">Packs</option>
+            </select>
+          </div>
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
-        >
-          <option value="all">Todos los estados</option>
-          <option value="confirmed">Confirmadas</option>
-          <option value="completed">Completadas</option>
-        </select>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white"
-        >
-          <option value="all">Todas</option>
-          <option value="single">Terapias</option>
-          <option value="pack">Packs</option>
-        </select>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -376,6 +381,136 @@ export default function AdminBookingsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden divide-y divide-gray-100">
+          {filtered.map((b) => {
+            const isExpanded = expandedRows.has(b.id)
+            const hasSessions = b.is_pack && b.sessions && b.sessions.length > 0
+            return (
+              <div key={b.id}>
+                <div
+                  onClick={() => {
+                    if (b.is_pack) {
+                      setExpandedRows((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(b.id)) next.delete(b.id)
+                        else next.add(b.id)
+                        return next
+                      })
+                    } else if (b.status === 'confirmed') {
+                      setCompleting(b); setNotes(''); setSelectedSession(null)
+                    } else if (b.status === 'completed' && b.admin_notes) {
+                      setViewNotes({ name: b.user_name, notes: b.admin_notes })
+                    }
+                  }}
+                  className={`p-3 space-y-2 ${
+                    b.is_pack || b.status === 'confirmed' || (b.status === 'completed' && b.admin_notes)
+                      ? 'cursor-pointer'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">{b.user_name}</p>
+                      <p className="text-xs text-gray-500 truncate">{b.user_email}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {b.status === 'pending' ? 'Pendiente' : b.status === 'confirmed' ? 'Confirmada' : b.status === 'cancelled' ? 'Cancelada' : b.status === 'completed' ? 'Completada' : b.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <span className="truncate">{b.therapy_name}</span>
+                    {b.is_pack && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 shrink-0">
+                        <Package size={10} />
+                        Pack
+                      </span>
+                    )}
+                    <span className="font-semibold text-gray-900 ml-auto">{b.price_cents / 100} €</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    {hasSessions ? (
+                      <span className="flex items-center gap-1">
+                        {b.sessions.length} sesiones
+                        <span className="text-[10px] text-gray-400">
+                          ({b.sessions.filter((s) => s.status === 'completed').length}/{b.sessions.length})
+                        </span>
+                        {isExpanded ? <ChevronDown size={12} className="text-gray-400" /> : <ChevronRight size={12} className="text-gray-400" />}
+                      </span>
+                    ) : (
+                      <span>
+                        {new Date(b.start_time).toLocaleDateString('es-ES', {
+                          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {b.admin_notes && <MessageSquare size={12} className="text-purple-500" />}
+                      {b.status === 'confirmed' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRescheduling(b); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setSelectedSession(null); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
+                          className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                        >
+                          <CalendarIcon size={12} />
+                          Reprogramar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {isExpanded && hasSessions && (
+                  <div className="bg-gray-50 border-t border-gray-100 px-3 py-2 space-y-1.5">
+                    {b.sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => {
+                          if (s.status === 'confirmed') {
+                            setCompleting(b); setNotes(''); setSelectedSession(s.id)
+                          } else if (s.status === 'completed' && s.admin_notes) {
+                            setViewNotes({ name: b.user_name, notes: s.admin_notes })
+                          }
+                        }}
+                        className={`flex items-center justify-between py-1.5 px-2 rounded-lg text-xs ${
+                          s.status === 'confirmed' ? 'cursor-pointer hover:bg-purple-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-gray-500 shrink-0">Sesión {s.session_number}</span>
+                          <span className="text-gray-600 truncate">
+                            {new Date(s.start_time).toLocaleDateString('es-ES', {
+                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
+                            {s.status === 'confirmed' ? 'Confirmada' : s.status === 'completed' ? 'Completada' : s.status}
+                          </span>
+                          {s.admin_notes && <MessageSquare size={10} className="text-purple-500" />}
+                          {s.status === 'confirmed' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setRescheduling(b); setSelectedSession(s.id); setRescheduleDate(''); setAvailableSlots([]); setSelectedSlot(''); setRescheduleMonth(new Date().getMonth() + 1); setRescheduleYear(new Date().getFullYear()) }}
+                              className="text-purple-600 hover:text-purple-800 font-medium"
+                            >
+                              <CalendarIcon size={11} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <CalendarDays size={36} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm">{search || filterStatus !== 'all' ? 'Ninguna reserva coincide' : 'No hay reservas'}</p>
+            </div>
+          )}
         </div>
       </div>
 

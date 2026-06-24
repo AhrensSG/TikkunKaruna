@@ -103,8 +103,8 @@ export default function DashboardPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Panel de Usuario</h1>
-        <p className="text-gray-500 text-sm mt-1">Bienvenido de nuevo. Gestiona tus terapias desde aquí.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Panel de Usuario</h1>
+        <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">Bienvenido de nuevo. Gestiona tus terapias desde aquí.</p>
       </div>
 
       {/* Stats grid */}

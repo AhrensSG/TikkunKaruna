@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { sendEmail } from '@/emails'
 import { reminderHtml } from '@/emails/templates'
+import { sendWhatsApp } from '@/lib/whatsapp'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
 
   const { rows: bookings } = await pool.query(
     `SELECT b.id, b.start_time, b.therapy_id,
-            u.email, u.name as user_name,
+            u.email, u.phone, u.name as user_name,
             t.name as therapy_name, t.description as therapy_description,
             t.duration_minutes
      FROM bookings b
@@ -55,6 +56,13 @@ export async function GET(req: Request) {
         requirements: reqs.map((r: any) => r.description),
       })
     )
+
+    if (booking.phone) {
+      sendWhatsApp(
+        booking.phone,
+        `⏰ *Recordatorio — ${booking.therapy_name}*\n\nHola ${booking.user_name}, te recordamos que tu sesión es en aproximadamente 1 hora.\n\n📅 ${dateStr}\n\nTe esperamos 💜`
+      )
+    }
 
     await pool.query(
       `UPDATE bookings SET reminder_sent_at = NOW() WHERE id = $1`,
