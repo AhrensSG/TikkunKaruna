@@ -69,12 +69,10 @@ export default function HeroSection() {
         </p>
 
         {/* Headline */}
-        <h1 className="font-heading text-5xl sm:text-6xl lg:text-8xl font-light text-white leading-none mb-3 max-w-4xl">
+        <h1 className="font-heading text-5xl sm:text-6xl lg:text-8xl font-light text-white leading-none mb-8 max-w-4xl">
           Sana.{" "}
           <span className="text-gradient-gold font-normal">Transforma.</span>
-        </h1>
-        <h1 className="font-heading text-5xl sm:text-6xl lg:text-8xl font-light text-white leading-none mb-8 max-w-4xl">
-          Reconecta.
+          {" "}Reconecta.
         </h1>
 
         {/* Gold divider */}

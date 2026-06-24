@@ -1,20 +1,21 @@
-import { auth } from '@/lib/auth.config'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export default auth((req) => {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isLoggedIn = !!req.auth
+  const token = req.cookies.get('next-auth.session-token')?.value
+    ?? req.cookies.get('__Secure-next-auth.session-token')?.value
 
-  if (pathname.startsWith('/dashboard') && !isLoggedIn) {
+  if (!token && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (pathname.startsWith('/admin') && !isLoggedIn) {
+  if (!token && pathname.startsWith('/admin')) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: ['/dashboard/:path*', '/admin/:path*'],

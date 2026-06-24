@@ -3,26 +3,23 @@ import { NextResponse } from 'next/server'
 const BASE_URL = 'https://tikkunkaruna.vercel.app'
 
 const routes = [
-  '/',
-  '/terapias',
-  '/sobre-nosotros',
-  '/contacto',
-  '/aviso-legal',
-  '/privacidad',
-  '/cookies',
-  '/terminos',
-  '/login',
-  '/register',
-  '/forgot-password',
+  { path: '/', priority: '1.0', freq: 'daily' },
+  { path: '/terapias', priority: '0.9', freq: 'weekly' },
+  { path: '/sobre-nosotros', priority: '0.8', freq: 'weekly' },
+  { path: '/contacto', priority: '0.7', freq: 'monthly' },
+  { path: '/aviso-legal', priority: '0.3', freq: 'monthly' },
+  { path: '/privacidad', priority: '0.3', freq: 'monthly' },
+  { path: '/cookies', priority: '0.3', freq: 'monthly' },
+  { path: '/terminos', priority: '0.3', freq: 'monthly' },
 ]
 
 export async function GET() {
   const urls = routes
     .map(
-      (route) => `  <url>
-    <loc>${BASE_URL}${route}</loc>
-    <changefreq>${route === '/' ? 'daily' : 'weekly'}</changefreq>
-    <priority>${route === '/' ? '1.0' : '0.8'}</priority>
+      (r) => `  <url>
+    <loc>${BASE_URL}${r.path}</loc>
+    <changefreq>${r.freq}</changefreq>
+    <priority>${r.priority}</priority>
   </url>`
     )
     .join('\n')
