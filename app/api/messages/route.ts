@@ -26,7 +26,7 @@ export async function GET() {
       [session.user.id]
     )
     rows = result.rows
-    unread = rows.filter((r: any) => !r.message_read_at).length
+    unread = rows.filter((r: { message_read_at: string | null }) => !r.message_read_at).length
   } catch {
     const result = await pool.query(
       `SELECT b.id, b.admin_notes, b.start_time, b.end_time, b.status,

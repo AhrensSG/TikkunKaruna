@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, Suspense } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react"
 import LogoMark from "@/components/ui/LogoMark"
 
 function ResetForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 

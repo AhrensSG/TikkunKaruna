@@ -52,13 +52,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!session?.user?.id) return
 
-    setForm({
-      name: session.user.name || "",
-      email: session.user.email || "",
-      phone: "",
-      image: session.user.image || "",
-    })
-
     fetch("/api/user/profile")
       .then((r) => r.json())
       .then((data) => {
@@ -82,7 +75,7 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [session?.user?.id])
+  }, [session?.user?.id, session?.user?.name, session?.user?.email, session?.user?.image])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -125,7 +118,7 @@ export default function ProfilePage() {
     setMessage(null)
 
     try {
-      const body: any = { name: form.name, phone: countryDial + phoneNumber, image: form.image }
+      const body: { name: string; phone: string; image: string; currentPassword?: string; newPassword?: string } = { name: form.name, phone: countryDial + phoneNumber, image: form.image }
 
       if (passwordForm.newPwd) {
         if (passwordForm.newPwd !== passwordForm.confirm) {

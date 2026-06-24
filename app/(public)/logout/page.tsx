@@ -3,7 +3,7 @@
 import { signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Loader2, LogOut, CheckCircle } from "lucide-react"
+import { Loader2, CheckCircle } from "lucide-react"
 
 export default function LogoutPage() {
   const [status, setStatus] = useState<"signing-out" | "done">("signing-out")

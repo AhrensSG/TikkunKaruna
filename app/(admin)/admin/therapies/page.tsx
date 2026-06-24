@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Plus, Pencil, Trash2, EyeOff, Sparkles, Search, X, Package } from 'lucide-react'
 import type { Therapy } from '@/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -215,10 +216,9 @@ export default function TherapiesPage() {
             key={therapy.id}
             className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 hover:shadow-sm transition-shadow"
           >
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-purple-50 flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-purple-50 flex items-center justify-center shrink-0 overflow-hidden relative">
               {therapy.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={therapy.image_url} alt={therapy.name} className="w-full h-full object-cover" />
+                <Image src={therapy.image_url} alt={therapy.name} fill className="object-cover" />
               ) : (
                 <Sparkles size={24} className="text-purple-400" />
               )}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -49,8 +50,7 @@ export default function UserSidebar() {
         <div className="p-5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
             {user?.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.image} alt="" className="w-9 h-9 rounded-full object-cover" />
+              <Image src={user.image} alt="" width={36} height={36} className="rounded-full object-cover" />
             ) : (
               <div className="w-9 h-9 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-sm">
                 {user?.name?.charAt(0) || "U"}

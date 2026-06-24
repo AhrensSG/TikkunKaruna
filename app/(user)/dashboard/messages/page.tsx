@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Loader2, MessageSquare, CalendarDays, Heart, ChevronDown } from "lucide-react"
+import { formatDate, formatTime } from "@/lib/format"
 
 interface Message {
   id: string
@@ -11,16 +12,6 @@ interface Message {
   status: string
   therapy_name: string
   message_read_at: string | null
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
 }
 
 export default function MessagesPage() {

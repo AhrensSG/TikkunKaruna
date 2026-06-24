@@ -3,10 +3,11 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   Sparkles, Clock, ArrowRight, Check, Loader2,
-  ArrowLeft, ShieldCheck, Video, ListChecks, Package, CalendarDays,
+  ArrowLeft, ShieldCheck, Video, ListChecks, Package,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
 import TermsCheckbox from "@/components/TermsCheckbox"
@@ -29,7 +30,7 @@ interface Therapy {
 
 export default function ReservarPage() {
   const { id } = useParams<{ id: string }>()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
 
   const today = new Date()
@@ -73,18 +74,22 @@ export default function ReservarPage() {
 
   useEffect(() => {
     if (!selectedDate || !id) return
-    setSlotsLoading(true)
-    setSelectedTime(null)
-
-    const params = new URLSearchParams({ date: selectedDate, therapyId: id })
-    if (prevSessionStart) params.set("after", prevSessionStart)
-    fetch(`/api/availability?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const load = async () => {
+      setSelectedTime(null)
+      setSlotsLoading(true)
+      const params = new URLSearchParams({ date: selectedDate, therapyId: id })
+      if (prevSessionStart) params.set("after", prevSessionStart)
+      try {
+        const res = await fetch(`/api/availability?${params}`)
+        const data = await res.json()
         setAvailableSlots(data.slots || [])
+      } catch {
+        setAvailableSlots([])
+      } finally {
         setSlotsLoading(false)
-      })
-      .catch(() => setSlotsLoading(false))
+      }
+    }
+    load()
   }, [selectedDate, id, prevSessionStart])
 
   useEffect(() => {
@@ -219,9 +224,8 @@ export default function ReservarPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden sticky top-24">
               {therapy.image_url && (
-                <div className="w-full h-48 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={therapy.image_url} alt={therapy.name} className="w-full h-full object-cover" />
+                <div className="relative w-full h-48 overflow-hidden">
+                  <Image src={therapy.image_url} alt={therapy.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 40vw" />
                 </div>
               )}
               <div className="p-6 space-y-5">

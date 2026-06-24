@@ -69,22 +69,35 @@ export const metadata: Metadata = {
   other: {
     "application/ld+json": JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      name: "TikkunKaruna",
-      description: "Terapias holísticas personalizadas — Reiki, Péndulo Hebreo, Armonización de Chakras",
-      url: BASE_URL,
-      email: "hola@tikkunkaruna.com",
-      telephone: "+34 620 89 75 29",
-      priceRange: "€€",
-      serviceArea: "España",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Valencia",
-        addressCountry: "ES",
-      },
-      sameAs: [
-        "https://instagram.com/@tikkunkaruna",
-        "https://facebook.com/@tikkunkaruna",
+      "@graph": [
+        {
+          "@type": "LocalBusiness",
+          name: "TikkunKaruna",
+          description: "Terapias holísticas personalizadas — Reiki, Péndulo Hebreo, Armonización de Chakras",
+          url: BASE_URL,
+          email: "hola@tikkunkaruna.com",
+          telephone: "+34 620 89 75 29",
+          priceRange: "€€",
+          serviceArea: "España",
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Valencia",
+            addressCountry: "ES",
+          },
+          sameAs: [
+            "https://instagram.com/@tikkunkaruna",
+            "https://facebook.com/@tikkunkaruna",
+          ],
+        },
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Inicio", item: BASE_URL },
+            { "@type": "ListItem", position: 2, name: "Terapias", item: `${BASE_URL}/terapias` },
+            { "@type": "ListItem", position: 3, name: "Sobre Inma", item: `${BASE_URL}/sobre-nosotros` },
+            { "@type": "ListItem", position: 4, name: "Contacto", item: `${BASE_URL}/contacto` },
+          ],
+        },
       ],
     }),
   },

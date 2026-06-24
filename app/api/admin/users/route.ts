@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await auth()
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await auth()
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

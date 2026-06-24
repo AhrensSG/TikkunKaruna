@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2, Package } from 'lucide-react'
+import { formatTime, formatDateShort } from '@/lib/format'
+import { bookingStatusColors, bookingStatusLabels } from '@/lib/constants'
 
 interface BookingSession {
   id: string
@@ -24,33 +26,10 @@ interface Booking {
   sessions: BookingSession[]
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-  completed: 'bg-blue-100 text-blue-800',
-}
-
-const statusLabels: Record<string, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmada',
-  cancelled: 'Cancelada',
-  completed: 'Completada',
-}
-
 const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDateShort(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '')
 }
 
 const todayStr = () => {
@@ -115,7 +94,9 @@ export default function AdminPage() {
     })
   }, [bookings, selectedDate])
 
-  const upcomingBookings = useMemo(() => {
+  type UpcomingBooking = Booking & { session?: BookingSession }
+
+  const upcomingBookings: UpcomingBooking[] = useMemo(() => {
     const now = new Date()
     return bookings
       .filter((b) => b.status === 'confirmed')
@@ -127,7 +108,7 @@ export default function AdminPage() {
         }
         return new Date(b.start_time) > now ? [b] : []
       })
-      .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .sort((a: UpcomingBooking, b: UpcomingBooking) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .slice(0, 10)
   }, [bookings])
 
@@ -244,8 +225,8 @@ export default function AdminPage() {
                       {b.is_pack && <Package size={10} className="text-purple-400 ml-0.5" />}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
-                    {statusLabels[b.status] || b.status}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${bookingStatusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {bookingStatusLabels[b.status] || b.status}
                   </span>
                 </div>
               ))}
@@ -266,7 +247,7 @@ export default function AdminPage() {
           <p className="text-sm text-gray-400 text-center py-8">No hay próximas sesiones</p>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {upcomingBookings.map((b: any) => (
+            {upcomingBookings.map((b: UpcomingBooking) => (
               <div key={b.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                 <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
                   {b.user_name.charAt(0)}
@@ -280,8 +261,8 @@ export default function AdminPage() {
                     {b.is_pack && <Package size={10} className="text-purple-400 ml-0.5" />}
                   </p>
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {statusLabels[b.status] || b.status}
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${bookingStatusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                  {bookingStatusLabels[b.status] || b.status}
                 </span>
               </div>
             ))}

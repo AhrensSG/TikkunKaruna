@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { Download, Loader2, CreditCard, FileText } from "lucide-react"
+import { paymentStatusLabels, paymentStatusColors } from "@/lib/constants"
 
 interface Invoice {
   id: string
@@ -31,20 +32,6 @@ type UnifiedItem = {
   invoice_id?: string
   invoice_number?: string
   payment_status?: string
-}
-
-const paymentStatusLabels: Record<string, string> = {
-  pending: "Pendiente",
-  succeeded: "Pagado",
-  failed: "Fallido",
-  refunded: "Reembolsado",
-}
-
-const paymentStatusColor: Record<string, string> = {
-  Pagado: "text-green-700 bg-green-100",
-  Pendiente: "text-yellow-700 bg-yellow-100",
-  Fallido: "text-red-700 bg-red-100",
-  Reembolsado: "text-blue-700 bg-blue-100",
 }
 
 function formatDate(iso: string) {
@@ -80,7 +67,8 @@ export default function InvoicesPage() {
       })
     }
 
-    const invoiceIds = new Set(invoices.map((i) => i.therapy_name.toLowerCase().trim()))
+    const _invoiceIds = new Set(invoices.map((i) => i.therapy_name.toLowerCase().trim()))
+    void _invoiceIds
     for (const p of payments) {
       if (p.status !== "succeeded") continue
       items.push({
@@ -168,7 +156,7 @@ export default function InvoicesPage() {
                         </a>
                       </div>
                     ) : (
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${paymentStatusColor[item.payment_status || ""] || ""}`}>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${paymentStatusColors[item.payment_status || ""] || ""}`}>
                         {item.payment_status}
                       </span>
                     )}
@@ -218,7 +206,7 @@ export default function InvoicesPage() {
                       {item.invoice_number} — PDF
                     </a>
                   ) : (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${paymentStatusColor[item.payment_status || ""] || ""}`}>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${paymentStatusColors[item.payment_status || ""] || ""}`}>
                       {item.payment_status}
                     </span>
                   )}

@@ -53,7 +53,7 @@ export async function GET(req: Request) {
         therapyDescription: booking.therapy_description || '',
         durationMinutes: booking.duration_minutes,
         dateStr,
-        requirements: reqs.map((r: any) => r.description),
+        requirements: reqs.map((r: { description: string }) => r.description),
       })
     )
 

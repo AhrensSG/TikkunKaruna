@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Loader2, Plus, Trash2, Save, CalendarDays, Clock, Ban, CheckCircle2, XCircle, Copy,
 } from 'lucide-react'
@@ -37,21 +37,23 @@ export default function SchedulePage() {
 
   const [newExceptionDate, setNewExceptionDate] = useState('')
   const [newExceptionReason, setNewExceptionReason] = useState('')
-  const [newExceptionAllDay, setNewExceptionAllDay] = useState(true)
+  const [_newExceptionAllDay, _setNewExceptionAllDay] = useState(true)
 
-  const fetchSchedule = useCallback(() => {
-    setLoading(true)
-    fetch('/api/admin/schedule')
-      .then((r) => r.json())
-      .then((data) => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch('/api/admin/schedule')
+        const data = await r.json()
         setWeekly(data.weekly || [])
         setExceptions(data.exceptions || [])
+      } catch {
+        // silent
+      } finally {
         setLoading(false)
-      })
-      .catch(() => setLoading(false))
+      }
+    }
+    load()
   }, [])
-
-  useEffect(() => { fetchSchedule() }, [fetchSchedule])
 
   const getSlotsForDay = (day: number) => {
     return weekly.filter((e) => e.day_of_week === day)
@@ -134,7 +136,7 @@ export default function SchedulePage() {
         setExceptions([data.exception, ...exceptions])
         setNewExceptionDate('')
         setNewExceptionReason('')
-        setNewExceptionAllDay(true)
+        _setNewExceptionAllDay(true)
       } else {
         alert('Error al crear excepción')
       }

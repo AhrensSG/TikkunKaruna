@@ -16,9 +16,15 @@ async function nextInvoiceNumber(): Promise<string> {
   return `TKFAC-${year}-${String(num + 1).padStart(4, "0")}`
 }
 
-const processedEvents = new Set<string>()
+interface StripeSession {
+  id?: string
+  metadata?: { booking_id?: string }
+  customer_details?: { email?: string; name?: string; phone?: string; address?: { country?: string } }
+  amount_total?: number
+  currency?: string
+}
 
-async function confirmBookingFromSession(stripeSession: any) {
+async function confirmBookingFromSession(stripeSession: StripeSession) {
   const bookingId = stripeSession.metadata?.booking_id
   if (!bookingId) return
 
@@ -79,7 +85,7 @@ async function confirmBookingFromSession(stripeSession: any) {
         `SELECT start_time FROM booking_sessions WHERE booking_id = $1 ORDER BY session_number`,
         [bookingId]
       )
-      dateStr = sessions.map((s: any, i: number) =>
+      dateStr = sessions.map((s: { start_time: string }, i: number) =>
         `Sesión ${i + 1}: ${new Date(s.start_time).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
       ).join('\n')
     } else {
@@ -98,7 +104,7 @@ async function confirmBookingFromSession(stripeSession: any) {
         durationMinutes: info.is_pack && info.session_duration_minutes ? info.session_duration_minutes : info.duration_minutes,
         dateStr,
         invoiceNumber,
-        requirements: reqs.map((r: any) => r.description),
+        requirements: reqs.map((r: { description: string }) => r.description),
       })
     )
 
@@ -128,19 +134,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
   }
 
-  if (processedEvents.has(event.id)) {
+  const alreadyProcessed = await pool.query(
+    `SELECT 1 FROM processed_events WHERE event_id = $1`,
+    [event.id]
+  )
+  if (alreadyProcessed.rows.length > 0) {
     return NextResponse.json({ received: true })
   }
 
+  await pool.query(
+    `INSERT INTO processed_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+    [event.id]
+  )
+
   if (event.type === 'checkout.session.completed') {
-    const stripeSession = event.data.object as any
-    processedEvents.add(event.id)
+    const stripeSession = event.data.object as StripeSession
     await confirmBookingFromSession(stripeSession)
   }
 
   if (event.type === 'checkout.session.expired') {
-    const stripeSession = event.data.object as any
-    processedEvents.add(event.id)
+    const stripeSession = event.data.object as StripeSession
     const bookingId = stripeSession.metadata?.booking_id
     if (bookingId) {
       await pool.query(

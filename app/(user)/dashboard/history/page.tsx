@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Loader2, X, Clock, CalendarDays, ListChecks, MessageSquare, Package } from "lucide-react"
+import { formatTime, formatDateTime } from "@/lib/format"
 
 interface BookingSession {
   id: string
@@ -44,17 +45,7 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }).replace(".", "")
 }
 
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-}
 
-function formatDateTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString("es-ES", {
-    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-  })
-}
 
 export default function HistoryPage() {
   const [bookings, setBookings] = useState<Booking[]>([])

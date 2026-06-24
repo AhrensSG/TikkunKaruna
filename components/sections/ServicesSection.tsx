@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
@@ -7,8 +8,20 @@ import pool from "@/lib/db";
 
 const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
+interface TherapyRow {
+  id: string
+  name: string
+  description: string
+  duration_minutes: number
+  price_cents: number
+  image_url: string
+  is_pack: boolean
+  session_count: number | null
+  session_duration_minutes: number | null
+}
+
 export default async function ServicesSection() {
-  let therapies: any[] = []
+  let therapies: TherapyRow[] = []
   try {
     const result = await pool.query(
       `SELECT id, name, description, duration_minutes, price_cents, image_url,
@@ -23,7 +36,7 @@ export default async function ServicesSection() {
        FROM therapies WHERE is_active = true AND sort_order > 0
        ORDER BY sort_order ASC, created_at DESC LIMIT 6`
     )
-    therapies = result.rows.map((t: any) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+    therapies = result.rows.map((t: TherapyRow) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
   }
 
   const services = therapies.map((t, i) => ({
@@ -71,13 +84,8 @@ export default async function ServicesSection() {
             >
               {/* Image */}
               {image_url && (
-                <div className="w-full h-44 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image_url}
-                    alt={name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                <div className="relative w-full h-44 overflow-hidden">
+                  <Image src={image_url} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                 </div>
               )}
 

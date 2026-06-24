@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Política de Cookies | TikkunKaruna",
+  description:
+    "Conoce cómo TikkunKaruna utiliza las cookies técnicas, analíticas y de terceros. Gestiona tus preferencias y protege tu privacidad en nuestra plataforma.",
 };
 
 export default function CookiesPage() {

@@ -37,11 +37,7 @@ export default function PhoneReminderModal() {
   const countryRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!user) {
-      setOpen(false)
-      setChecked(false)
-      return
-    }
+    if (!user) return
     if (checked) return
 
     fetch("/api/user/profile")
@@ -54,11 +50,11 @@ export default function PhoneReminderModal() {
           .then((r) => r.json())
           .then((bData) => {
             const now = new Date()
-            const hasUpcoming = (bData.bookings || []).some((b: any) => {
+            const hasUpcoming = (bData.bookings || []).some((b: { status: string; start_time: string; sessions?: { status: string; start_time: string }[] }) => {
               if (b.status !== "confirmed") return false
               if (new Date(b.start_time) > now) return true
               if (b.sessions) {
-                return b.sessions.some((s: any) => s.status === "confirmed" && new Date(s.start_time) > now)
+                return b.sessions.some((s) => s.status === "confirmed" && new Date(s.start_time) > now)
               }
               return false
             })

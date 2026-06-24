@@ -13,17 +13,17 @@ export async function checkOverlap(
       `SELECT id::text FROM bookings
        WHERE status = 'confirmed'
          AND tstzrange(start_time, end_time) &&
-             tstzrange($1::timestamptz - interval '${BUFFER_MINUTES} minutes',
-                       $2::timestamptz + interval '${BUFFER_MINUTES} minutes')
+             tstzrange($1::timestamptz - ($3 || ' minutes')::interval,
+                       $2::timestamptz + ($3 || ' minutes')::interval)
        UNION ALL
        SELECT bs.id::text FROM booking_sessions bs
        JOIN bookings b ON b.id = bs.booking_id
        WHERE bs.status = 'confirmed'
          AND b.status = 'confirmed'
          AND tstzrange(bs.start_time, bs.end_time) &&
-             tstzrange($1::timestamptz - interval '${BUFFER_MINUTES} minutes',
-                       $2::timestamptz + interval '${BUFFER_MINUTES} minutes')`,
-      [sStart.toISOString(), sEnd.toISOString()]
+             tstzrange($1::timestamptz - ($3 || ' minutes')::interval,
+                       $2::timestamptz + ($3 || ' minutes')::interval)`,
+      [sStart.toISOString(), sEnd.toISOString(), String(BUFFER_MINUTES)]
     )
 
     if (result.rows.length > 0) {

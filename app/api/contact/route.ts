@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { sendEmail } from '@/emails'
+import { escapeHtml } from '@/lib/escape'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function GET() {
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -8,7 +10,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, email, subject, message } = await req.json()
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    const rateCheck = await checkRateLimit(`contact:${ip}`, 'contact', { maxRequests: 3, windowMs: 60_000 })
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' }, { status: 429 })
+    }
+
+    const { name: rawName, email: rawEmail, subject: rawSubject, message: rawMessage } = await req.json()
+    const name = escapeHtml(rawName)
+    const email = escapeHtml(rawEmail)
+    const subject = rawSubject ? escapeHtml(rawSubject) : ''
+    const message = escapeHtml(rawMessage)
 
     if (!name || !email || !message) {
       return NextResponse.json({ error: 'Nombre, email y mensaje son obligatorios' }, { status: 400 })

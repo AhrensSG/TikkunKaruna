@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones | TikkunKaruna",
+  description:
+    "Términos y condiciones de uso de TikkunKaruna. Proceso de reserva, cancelaciones, reembolsos y obligaciones del usuario. Contrata con total confianza.",
 };
 
 export default function TerminosPage() {

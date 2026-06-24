@@ -6,15 +6,15 @@ import { ChevronDown } from "lucide-react";
 const faqs = [
   {
     q: "¿En qué consisten las terapias holísticas?",
-    a: "Las terapias holísticas abordan a la persona en su totalidad: cuerpo, mente y espíritu. No se centran únicamente en el síntoma, sino en la raíz del desequilibrio, facilitando procesos de sanación profundos y duraderos. [Pendiente de personalizar por la terapeuta]",
+    a: "Las terapias holísticas abordan a la persona en su totalidad: cuerpo, mente y espíritu. No se centran únicamente en el síntoma, sino en la raíz del desequilibrio, facilitando procesos de sanación profundos y duraderos. Cada sesión es diseñada de forma única para ti, atendiendo a tus necesidades y momento vital.",
   },
   {
     q: "¿Cuánto dura cada sesión?",
-    a: "La duración varía según la terapia elegida, entre 60 y 90 minutos. Puedes consultar la duración exacta en la página de cada terapia. [Pendiente de personalizar]",
+    a: "La duración varía según la terapia elegida, entre 60 y 90 minutos. Puedes consultar la duración exacta en la página de cada terapia. Si tienes dudas, contáctanos y te asesoramos sin compromiso.",
   },
   {
     q: "¿Las sesiones son presenciales u online?",
-    a: "Actualmente ofrecemos sesiones en la modalidad indicada en cada terapia. Algunas pueden realizarse online a través de videollamada. Consulta la descripción de cada servicio para más información. [Pendiente de personalizar]",
+    a: "Actualmente ofrecemos sesiones tanto presenciales en Valencia como online a través de videollamada, según la terapia elegida. Consulta la descripción de cada servicio para más información y elige la modalidad que mejor se adapte a ti.",
   },
   {
     q: "¿Cómo puedo reservar una cita?",
@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "¿Puedo cancelar o cambiar mi reserva?",
-    a: "Sí. Puedes gestionar tus reservas desde tu panel de usuario. Te pedimos que cualquier cambio o cancelación se realice con al menos 24 horas de antelación. [Pendiente de definir política de cancelación]",
+    a: "Sí. Puedes gestionar tus reservas desde tu panel de usuario. Te pedimos que cualquier cambio o cancelación se realice con al menos 24 horas de antelación. Las cancelaciones con más de 24 horas tienen reembolso íntegro (descontando comisiones de pago). Entre 24 y 2 horas antes, puedes reprogramar sin coste. Con menos de 2 horas, no se realiza reembolso.",
   },
 ];
 

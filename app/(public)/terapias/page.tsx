@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
   Clock, ArrowRight, CalendarCheck, ListChecks, Package,
 } from "lucide-react";
 import pool from "@/lib/db";
+import { formatDuration } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Terapias | TikkunKaruna",
@@ -14,17 +16,21 @@ export const metadata: Metadata = {
 
 const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
-function formatDuration(minutes: number) {
-  if (minutes >= 60) {
-    const h = Math.floor(minutes / 60)
-    const m = minutes % 60
-    return m > 0 ? `${h}h ${m} min` : `${h}h`
-  }
-  return `${minutes} min`
+interface TherapyRow {
+  id: string
+  name: string
+  description: string
+  duration_minutes: number
+  price_cents: number
+  image_url: string
+  requirements: string[]
+  is_pack: boolean
+  session_count: number | null
+  session_duration_minutes: number | null
 }
 
 export default async function TerapiasPage() {
-  let therapies: any[] = []
+  let therapies: TherapyRow[] = []
   try {
     const result = await pool.query(
       `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
@@ -47,7 +53,7 @@ export default async function TerapiasPage() {
         GROUP BY t.id
        ORDER BY t.sort_order ASC, t.created_at ASC`
     )
-    therapies = result.rows.map((t: any) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+    therapies = result.rows.map((t: TherapyRow) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
   }
 
   const services = therapies.map((t, i) => ({
@@ -98,13 +104,8 @@ export default async function TerapiasPage() {
               >
                 {/* Image */}
                 {image_url ? (
-                  <div className="w-full h-44 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={image_url}
-                      alt={name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                  <div className="relative w-full h-44 overflow-hidden">
+                    <Image src={image_url} alt={name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                   </div>
                 ) : (
                   <div className="w-full h-44 bg-purple-50 flex items-center justify-center">

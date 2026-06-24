@@ -6,7 +6,7 @@ export async function requireAdmin() {
   if (!session?.user) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
-  if ((session.user as any).role !== 'admin') {
+  if (session.user.role !== 'admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
   return null

@@ -88,7 +88,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { is_active, sort_order, restore } = await req.json()
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: (string | number | boolean)[] = []
     let idx = 1
 
     if (typeof is_active === 'boolean') {

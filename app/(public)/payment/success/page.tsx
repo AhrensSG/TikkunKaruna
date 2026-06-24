@@ -3,7 +3,9 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { CheckCircle, Calendar, Clock, ArrowRight, Loader2 } from "lucide-react"
+import { formatDate, formatTime, formatDuration } from "@/lib/format"
 
 interface BookingData {
   booking_id: string
@@ -28,11 +30,7 @@ function PaymentSuccessContent() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    if (!sessionId) {
-      setError("No se encontró el identificador de la sesión")
-      setLoading(false)
-      return
-    }
+    if (!sessionId) return
 
     const params = new URLSearchParams({ session_id: sessionId })
     if (bookingId) params.set("booking_id", bookingId)
@@ -53,28 +51,7 @@ function PaymentSuccessContent() {
       })
   }, [sessionId, bookingId])
 
-  function formatDate(iso: string) {
-    const d = new Date(iso)
-    return d.toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })
-  }
 
-  function formatTime(iso: string) {
-    const d = new Date(iso)
-    return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-  }
-
-  function formatDuration(minutes: number) {
-    if (minutes >= 60) {
-      const h = Math.floor(minutes / 60)
-      const m = minutes % 60
-      return m > 0 ? `${h}h ${m} min` : `${h}h`
-    }
-    return `${minutes} min`
-  }
 
   if (loading) {
     return (
@@ -83,6 +60,23 @@ function PaymentSuccessContent() {
           <Loader2 size={32} className="animate-spin text-purple-600 mx-auto mb-3" />
           <p className="text-purple-600 text-sm">Verificando tu reserva...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (!loading && !sessionId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-50 to-white gap-4">
+        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+          <span className="text-red-600 text-2xl">!</span>
+        </div>
+        <p className="text-gray-700 font-medium">No se encontró el identificador de la sesión</p>
+        <Link
+          href="/dashboard/history"
+          className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+        >
+          Ir a mis reservas →
+        </Link>
       </div>
     )
   }
@@ -125,13 +119,8 @@ function PaymentSuccessContent() {
         {/* Booking card */}
         <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden mb-8">
           {booking.image_url && (
-            <div className="w-full h-44 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={booking.image_url}
-                alt={booking.therapy_name}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative w-full h-44 overflow-hidden">
+              <Image src={booking.image_url} alt={booking.therapy_name} fill className="object-cover" />
             </div>
           )}
           <div className="p-6 space-y-4">

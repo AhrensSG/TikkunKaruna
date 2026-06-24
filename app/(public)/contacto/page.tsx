@@ -125,8 +125,8 @@ export default function ContactoPage() {
                 </div>
                 <div className="space-y-2">
                   {[
-                    { day: "Lunes – Viernes", hours: "Pendiente de definir" },
-                    { day: "Sábados", hours: "Pendiente de definir" },
+                    { day: "Lunes – Viernes", hours: "10:00 – 19:00" },
+                    { day: "Sábados", hours: "10:00 – 14:00" },
                     { day: "Domingos", hours: "Cerrado" },
                   ].map(({ day, hours }) => (
                     <div key={day} className="flex justify-between text-sm font-body">

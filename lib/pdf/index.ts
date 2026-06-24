@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb, type PDFImage } from 'pdf-lib'
 import fs from 'fs'
 import path from 'path'
 
@@ -49,7 +49,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
     })
 
   const logoPath = path.join(process.cwd(), 'public', 'LogoC.png')
-  let logo: { img: any; w: number; h: number } | null = null
+  let logo: { img: PDFImage; w: number; h: number } | null = null
   try {
     const bytes = fs.readFileSync(logoPath)
     const img = await doc.embedPng(bytes)

@@ -11,6 +11,14 @@ export function centsToEuros(cents: number): string {
   return `${(cents / 100).toFixed(0)} €`
 }
 
+export function formatEuro(cents: number): string {
+  return (cents / 100).toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' €'
+}
+
+export function formatMonth(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+}
+
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-ES", {
     day: "numeric",
@@ -23,6 +31,20 @@ export function formatDateShort(iso: string): string {
   return new Date(iso).toLocaleDateString("es-ES", {
     day: "numeric",
     month: "short",
+  })
+}
+
+export function formatDateShortDot(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).replace(".", "")
+}
+
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
   })
 }
 

@@ -5,6 +5,7 @@ import { CalendarDays, Search, X, Loader2, MessageSquare, Calendar as CalendarIc
 import CompleteSessionModal from '@/components/admin/CompleteSessionModal'
 import RescheduleModal from '@/components/admin/RescheduleModal'
 import ViewNotesModal from '@/components/admin/ViewNotesModal'
+import { bookingStatusColors } from '@/lib/constants'
 
 interface BookingSession {
   id: string
@@ -30,13 +31,6 @@ interface Booking {
   is_pack: boolean
   session_count: number | null
   sessions: BookingSession[]
-}
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-  completed: 'bg-blue-100 text-blue-800',
 }
 
 export default function AdminBookingsPage() {
@@ -83,23 +77,21 @@ export default function AdminBookingsPage() {
   }, [rescheduleYear, rescheduleMonth, rescheduling])
 
   useEffect(() => {
-    if (!rescheduling || !rescheduleDate) {
-      setAvailableSlots([])
+    if (!rescheduling || !rescheduleDate) return
+    const load = async () => {
       setSelectedSlot('')
-      return
-    }
-    setLoadingSlots(true)
-    setSelectedSlot('')
-    fetch(`/api/availability?date=${rescheduleDate}&therapyId=${rescheduling.therapy_id}`)
-      .then((r) => r.json())
-      .then((data) => {
+      setLoadingSlots(true)
+      try {
+        const r = await fetch(`/api/availability?date=${rescheduleDate}&therapyId=${rescheduling.therapy_id}`)
+        const data = await r.json()
         setAvailableSlots(data.slots || [])
-        setLoadingSlots(false)
-      })
-      .catch(() => {
+      } catch {
         setAvailableSlots([])
+      } finally {
         setLoadingSlots(false)
-      })
+      }
+    }
+    load()
   }, [rescheduleDate, rescheduling])
 
   const filtered = useMemo(() => {
@@ -301,7 +293,7 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{b.price_cents / 100} €</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bookingStatusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
                           {b.status === 'pending' ? 'Pendiente' : b.status === 'confirmed' ? 'Confirmada' : b.status === 'cancelled' ? 'Cancelada' : b.status === 'completed' ? 'Completada' : b.status}
                         </span>
                         {b.admin_notes && (
@@ -348,7 +340,7 @@ export default function AdminBookingsPage() {
                             </td>
                             <td className="px-4 py-2"></td>
                             <td className="px-4 py-2">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${bookingStatusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
                                 {s.status === 'confirmed' ? 'Confirmada' : s.status === 'completed' ? 'Completada' : s.status}
                               </span>
                               {s.admin_notes && <MessageSquare size={10} className="ml-1 text-purple-500 inline" />}
@@ -416,7 +408,7 @@ export default function AdminBookingsPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">{b.user_name}</p>
                       <p className="text-xs text-gray-500 truncate">{b.user_email}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${bookingStatusColors[b.status] || 'bg-gray-100 text-gray-600'}`}>
                       {b.status === 'pending' ? 'Pendiente' : b.status === 'confirmed' ? 'Confirmada' : b.status === 'cancelled' ? 'Cancelada' : b.status === 'completed' ? 'Completada' : b.status}
                     </span>
                   </div>
@@ -485,7 +477,7 @@ export default function AdminBookingsPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${bookingStatusColors[s.status] || 'bg-gray-100 text-gray-600'}`}>
                             {s.status === 'confirmed' ? 'Confirmada' : s.status === 'completed' ? 'Completada' : s.status}
                           </span>
                           {s.admin_notes && <MessageSquare size={10} className="text-purple-500" />}

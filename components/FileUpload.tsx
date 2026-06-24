@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { Upload, X, FileVideo, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface FileUploadProps {
@@ -96,8 +97,7 @@ export default function FileUpload({
           {isVideo ? (
             <video src={currentUrl} className="h-24 rounded-lg border border-gray-200" controls />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={currentUrl} alt={label} className="h-24 w-24 object-cover rounded-lg border border-gray-200" />
+            <Image src={currentUrl} alt={label} width={96} height={96} className="object-cover rounded-lg border border-gray-200" />
           )}
           <button
             type="button"

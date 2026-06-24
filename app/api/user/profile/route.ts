@@ -31,7 +31,7 @@ export async function PUT(req: Request) {
     const { name, phone, image, currentPassword, newPassword } = await req.json()
 
     const sets: string[] = []
-    const values: any[] = []
+    const values: (string | number | boolean)[] = []
     let idx = 1
 
     if (name !== undefined) {

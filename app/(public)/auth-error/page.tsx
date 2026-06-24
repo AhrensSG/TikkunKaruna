@@ -4,6 +4,8 @@ import { AlertTriangle, ArrowLeft, LogIn } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Error de autenticación | TikkunKaruna",
+  description:
+    "Ha ocurrido un problema al iniciar sesión en TikkunKaruna. El enlace puede haber expirado o las credenciales no ser correctas. Intenta de nuevo.",
 }
 
 export default function AuthErrorPage() {

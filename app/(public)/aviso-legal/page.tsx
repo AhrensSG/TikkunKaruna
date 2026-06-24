@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Aviso Legal | TikkunKaruna",
+  description:
+    "Información legal de TikkunKaruna. Identificación del titular, propiedad intelectual, exención de responsabilidad y legislación aplicable.",
 };
 
 export default function AvisoLegalPage() {

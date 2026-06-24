@@ -33,7 +33,6 @@ export async function GET(req: Request) {
 
     const minStart = after ? new Date(new Date(after).getTime() + MIN_HOURS_FROM_NOW * 3_600_000) : null
 
-    const firstDay = new Date(year, month - 1, 1)
     const lastDay = new Date(year, month, 0)
     const totalDays = lastDay.getDate()
 

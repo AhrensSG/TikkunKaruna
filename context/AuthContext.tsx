@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: session.user.name || '',
         email: session.user.email || '',
         image: session.user.image || undefined,
-        role: (session.user as any).role || 'user',
+        role: session.user.role,
         created_at: '',
       }
     : null

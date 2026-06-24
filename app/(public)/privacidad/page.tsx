@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad | TikkunKaruna",
+  description:
+    "Protección de datos personales en TikkunKaruna. Conoce qué datos recogemos, con qué finalidad, tus derechos RGPD y cómo ejercerlos.",
 };
 
 export default function PrivacidadPage() {

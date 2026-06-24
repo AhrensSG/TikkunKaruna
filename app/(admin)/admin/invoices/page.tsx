@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FileText, Download, Search, X, Loader2, Euro, TrendingUp, Receipt, CreditCard } from 'lucide-react'
+import { Download, Search, X, Loader2, Euro, TrendingUp, Receipt, CreditCard } from 'lucide-react'
+import { formatDateShortDot, formatEuro, formatMonth } from '@/lib/format'
 
 interface Stats {
   totalRevenueCents: number
@@ -26,20 +27,6 @@ interface Payment {
   therapy_name: string
   invoice_number: string | null
   invoice_id: string | null
-}
-
-function formatEuro(cents: number) {
-  return (cents / 100).toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' €'
-}
-
-function formatMonth(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '')
 }
 
 export default function AdminInvoicesPage() {
@@ -153,7 +140,7 @@ export default function AdminInvoicesPage() {
                 </td>
                 <td className="px-4 py-3 text-gray-600">{p.therapy_name}</td>
                 <td className="px-4 py-3 font-semibold text-gray-900">{p.amount_cents / 100} €</td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(p.created_at)}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{formatDateShortDot(p.created_at)}</td>
                 <td className="px-4 py-3 text-gray-500 text-xs font-mono">
                   {p.invoice_number || '—'}
                 </td>
@@ -197,7 +184,7 @@ export default function AdminInvoicesPage() {
               </div>
               <p className="text-xs text-gray-600">{p.therapy_name}</p>
               <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>{formatDate(p.created_at)}</span>
+                <span>{formatDateShortDot(p.created_at)}</span>
                 <span className="font-mono">{p.invoice_number || '—'}</span>
                 {p.invoice_id ? (
                   <a

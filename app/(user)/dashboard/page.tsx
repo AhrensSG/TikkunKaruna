@@ -69,7 +69,9 @@ export default function DashboardPage() {
 
   const now = new Date()
 
-  const upcomingSessions = bookings
+  type UpcomingSession = Booking & { session_number: number }
+
+  const upcomingSessions: UpcomingSession[] = bookings
     .filter((b) => b.status === "confirmed")
     .flatMap((b) => {
       if (b.sessions && b.sessions.length > 0) {
@@ -85,7 +87,7 @@ export default function DashboardPage() {
       }
       return new Date(b.start_time) > now ? [{ ...b, session_number: 0 }] : []
     })
-    .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .sort((a: UpcomingSession, b: UpcomingSession) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 
   const nextSession = upcomingSessions[0] || null
 
@@ -117,7 +119,7 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Próxima sesión</p>
             <p className="text-sm font-semibold text-gray-900 mt-0.5 truncate">
               {nextSession
-                ? `${formatDate(nextSession.start_time)} · ${formatTime(nextSession.start_time)}${(nextSession as any).session_number > 0 ? ` · Sesión ${(nextSession as any).session_number}` : ''}`
+                ? `${formatDate(nextSession.start_time)} · ${formatTime(nextSession.start_time)}${nextSession.session_number > 0 ? ` · Sesión ${nextSession.session_number}` : ''}`
                 : "Sin reservas"}
             </p>
           </div>
@@ -143,7 +145,7 @@ export default function DashboardPage() {
           </h2>
           {upcomingSessions.length > 0 ? (
             <div className="space-y-3">
-              {upcomingSessions.map((s: any) => (
+              {upcomingSessions.map((s: UpcomingSession) => (
                 <div key={s.id} className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
                   <div className="w-12 h-12 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-lg shrink-0">
                     {s.therapy_name.charAt(0)}

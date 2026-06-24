@@ -14,12 +14,13 @@ export async function POST(req: Request) {
     const user = await pool.query("SELECT id, name FROM users WHERE email = $1", [email])
 
     const token = crypto.randomBytes(32).toString("hex")
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
     await pool.query("DELETE FROM reset_tokens WHERE email = $1", [email])
     await pool.query(
       "INSERT INTO reset_tokens (email, token, expires_at) VALUES ($1, $2, $3)",
-      [email, token, expiresAt]
+      [email, hashedToken, expiresAt]
     )
 
     if (user.rows.length > 0) {
