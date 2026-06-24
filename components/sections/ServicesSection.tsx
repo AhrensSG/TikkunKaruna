@@ -8,13 +8,23 @@ import pool from "@/lib/db";
 const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
 
 export default async function ServicesSection() {
-  const result = await pool.query(
-    `     SELECT id, name, description, duration_minutes, price_cents, image_url,
-            is_pack, session_count, session_duration_minutes
-     FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
-     ORDER BY sort_order ASC, created_at DESC LIMIT 6`
-  )
-  const therapies = result.rows
+  let therapies: any[] = []
+  try {
+    const result = await pool.query(
+      `SELECT id, name, description, duration_minutes, price_cents, image_url,
+              is_pack, session_count, session_duration_minutes
+       FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
+       ORDER BY sort_order ASC, created_at DESC LIMIT 6`
+    )
+    therapies = result.rows
+  } catch {
+    const result = await pool.query(
+      `SELECT id, name, description, duration_minutes, price_cents, image_url
+       FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
+       ORDER BY sort_order ASC, created_at DESC LIMIT 6`
+    )
+    therapies = result.rows.map((t: any) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+  }
 
   const services = therapies.map((t, i) => ({
     Icon: icons[i % icons.length],
