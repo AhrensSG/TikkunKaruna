@@ -20,7 +20,7 @@ export default async function ServicesSection() {
   } catch {
     const result = await pool.query(
       `SELECT id, name, description, duration_minutes, price_cents, image_url
-       FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
+       FROM therapies WHERE is_active = true AND sort_order > 0
        ORDER BY sort_order ASC, created_at DESC LIMIT 6`
     )
     therapies = result.rows.map((t: any) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
