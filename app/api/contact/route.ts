@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { sendEmail } from '@/emails'
 
+export async function GET() {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 })
+}
+
 export async function POST(req: Request) {
   try {
     const { name, email, subject, message } = await req.json()

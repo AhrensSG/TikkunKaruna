@@ -52,10 +52,7 @@ export default function CookiesPage() {
 
                 <h3 className="font-heading text-lg text-purple-950 mt-5 mb-2">Cookies analíticas</h3>
                 <p>
-                  Nos permiten medir y analizar el tráfico, el comportamiento y la audiencia del sitio web de forma agregada y anónima. Los datos recogidos nos ayudan a mejorar la experiencia de navegación y optimizar los contenidos.
-                </p>
-                <p className="text-purple-600 mt-1">
-                  [Indicar aquí si se utiliza Google Analytics, Vercel Analytics u otra herramienta. En caso de no utilizar ninguna, eliminar esta sección.]
+                  Actualmente no utilizamos herramientas de análisis de terceros. Si en el futuro implementáramos herramientas analíticas, actualizaríamos esta política para informar de forma transparente.
                 </p>
 
                 <h3 className="font-heading text-lg text-purple-950 mt-5 mb-2">Cookies de preferencias</h3>

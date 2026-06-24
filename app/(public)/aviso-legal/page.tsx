@@ -33,11 +33,11 @@ export default function AvisoLegalPage() {
                   En cumplimiento del artículo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa de que el titular del sitio web <strong>www.tikkunkaruna.com</strong> es:
                 </p>
                 <ul className="list-disc pl-5 space-y-1 mt-3">
-                  <li><strong>Nombre / Razón social:</strong> [Nombre completo del titular]</li>
-                  <li><strong>NIF / CIF:</strong> [NIF/CIF del titular]</li>
-                  <li><strong>Domicilio:</strong> [Dirección física completa]</li>
+                  <li><strong>Nombre / Razón social:</strong> Sunnafreyr18 Group SL</li>
+                  <li><strong>NIF / CIF:</strong> B23897952</li>
+                  <li><strong>Domicilio:</strong> Carrer de les Barques 2, piso 2, 46002 Valencia</li>
                   <li><strong>Correo electrónico:</strong> hola@tikkunkaruna.com</li>
-                  <li><strong>Teléfono:</strong> [Teléfono de contacto]</li>
+                  <li><strong>Teléfono:</strong> +34 620 89 75 29</li>
                   <li><strong>Denominación comercial:</strong> TikkunKaruna</li>
                 </ul>
               </div>
@@ -91,7 +91,7 @@ export default function AvisoLegalPage() {
               <div>
                 <h2 className="font-heading text-2xl text-purple-950 mb-3">6. Legislación aplicable y jurisdicción</h2>
                 <p>
-                  Las presentes condiciones se rigen por la legislación española. Para la resolución de cualquier controversia o litigio que pudiera derivarse del uso del sitio web, las partes se someten a los juzgados y tribunales de [Ciudad], con renuncia expresa a cualquier otro fuero que pudiera corresponderles.
+                  Las presentes condiciones se rigen por la legislación española. Para la resolución de cualquier controversia o litigio que pudiera derivarse del uso del sitio web,                   las partes se someten a los juzgados y tribunales de Valencia, con renuncia expresa a cualquier otro fuero que pudiera corresponderles.
                 </p>
               </div>
             </div>

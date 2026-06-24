@@ -33,11 +33,11 @@ export default function PrivacidadPage() {
                   En cumplimiento del Reglamento General de Protección de Datos (RGPD) y la Ley Orgánica 3/2018 de Protección de Datos Personales y Garantía de los Derechos Digitales (LOPDGDD), se informa de que el responsable del tratamiento de los datos personales recogidos a través de este sitio web es:
                 </p>
                 <ul className="list-disc pl-5 space-y-1 mt-3">
-                  <li><strong>Identidad:</strong> [Nombre completo del responsable]</li>
-                  <li><strong>NIF / CIF:</strong> [NIF/CIF]</li>
-                  <li><strong>Domicilio:</strong> [Dirección física]</li>
+                  <li><strong>Identidad:</strong> Sunnafreyr18 Group SL</li>
+                  <li><strong>NIF / CIF:</strong> B23897952</li>
+                  <li><strong>Domicilio:</strong> Carrer de les Barques 2, piso 2, 46002 Valencia</li>
                   <li><strong>Correo electrónico:</strong> hola@tikkunkaruna.com</li>
-                  <li><strong>Teléfono:</strong> [Teléfono]</li>
+                  <li><strong>Teléfono:</strong> +34 620 89 75 29</li>
                 </ul>
               </div>
 
@@ -93,7 +93,7 @@ export default function PrivacidadPage() {
                   <li><strong>Stripe, Inc.</strong> &mdash; procesador de pagos. Se rige por su propia política de privacidad y seguridad. Opera bajo estándares PCI-DSS.</li>
                   <li><strong>Vercel Inc.</strong> &mdash; proveedor de alojamiento web (hosting). Los datos se almacenan en servidores ubicados en la Unión Europea.</li>
                   <li><strong>Railway Corporation</strong> &mdash; proveedor de base de datos PostgreSQL.</li>
-                  <li><strong>[Nombre del proveedor de email]</strong> &mdash; envío de correos transaccionales (confirmaciones y recordatorios).</li>
+                  <li><strong>Resend</strong> &mdash; envío de correos transaccionales (confirmaciones y recordatorios).</li>
                 </ul>
               </div>
 

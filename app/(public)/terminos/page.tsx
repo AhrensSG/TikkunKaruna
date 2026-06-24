@@ -40,7 +40,7 @@ export default function TerminosPage() {
               <div>
                 <h2 className="font-heading text-2xl text-purple-950 mb-3">2. Descripción del servicio</h2>
                 <p>
-                  TikkunKaruna es una plataforma que permite a los usuarios reservar y contratar sesiones individuales de terapias holísticas con Inma, terapeuta especializada. Las sesiones se realizan de forma presencial en [ubicación de las sesiones] u online mediante videollamada, según la terapia seleccionada.
+                  TikkunKaruna es una plataforma que permite a los usuarios reservar y contratar sesiones individuales de terapias holísticas con Inma, terapeuta especializada.                   Las sesiones se realizan de forma presencial en Valencia u online mediante videollamada, según la terapia seleccionada.
                 </p>
                 <p className="mt-2">
                   La descripción detallada de cada terapia (duración, precio, requisitos y beneficios) está disponible en la sección de Terapias de la plataforma.
@@ -136,7 +136,7 @@ export default function TerminosPage() {
               <div>
                 <h2 className="font-heading text-2xl text-purple-950 mb-3">11. Legislación aplicable y jurisdicción</h2>
                 <p>
-                  Estas Condiciones se rigen por la legislación española. Para cualquier controversia o litigio derivado de las mismas, las partes se someten a los juzgados y tribunales de [Ciudad], con renuncia expresa a cualquier otro fuero que pudiera corresponderles.
+                  Estas Condiciones se rigen por la legislación española. Para cualquier controversia o litigio derivado de las mismas,                   las partes se someten a los juzgados y tribunales de Valencia, con renuncia expresa a cualquier otro fuero que pudiera corresponderles.
                 </p>
               </div>
 

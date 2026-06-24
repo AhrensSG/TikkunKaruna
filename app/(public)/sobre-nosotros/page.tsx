@@ -2,20 +2,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Star, Leaf, ArrowRight, BookOpen, Award } from "lucide-react";
-import LogoMark from "@/components/ui/LogoMark";
 
 export const metadata: Metadata = {
   title: "Sobre Inma | TikkunKaruna",
   description:
     "Conoce a Inma, terapeuta holística detrás de TikkunKaruna. Su historia, formación y filosofía de trabajo.",
 };
-
-const formacion = [
-  { year: "20XX", title: "Formación 1", institution: "Instituto / Centro pendiente" },
-  { year: "20XX", title: "Formación 2", institution: "Instituto / Centro pendiente" },
-  { year: "20XX", title: "Formación 3", institution: "Instituto / Centro pendiente" },
-  { year: "20XX", title: "Formación 4", institution: "Instituto / Centro pendiente" },
-];
 
 const valores = [
   {
@@ -155,48 +147,7 @@ export default function SobreNosotrosPage() {
         </div>
       </section>
 
-      {/* ── Formación ── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <p className="section-label mb-4">✦ Formación</p>
-            <h2 className="font-heading text-4xl sm:text-5xl text-purple-950 mb-5">
-              Mi{" "}
-              <span className="text-gradient-gold">trayectoria</span>
-            </h2>
-            <div className="gold-divider" />
-          </div>
 
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-8 sm:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-purple-200 via-gold-300/40 to-purple-200" />
-
-            <div className="space-y-8">
-              {formacion.map(({ year, title, institution }, idx) => (
-                <div
-                  key={idx}
-                  className={`relative flex items-center gap-6 ${idx % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"}`}
-                >
-                  {/* Content */}
-                  <div className={`flex-1 ${idx % 2 === 0 ? "sm:text-right" : "sm:text-left"} pl-16 sm:pl-0`}>
-                    <div className="bg-white border border-purple-100 rounded-2xl p-5 hover:border-gold-200 hover:shadow-md transition-all">
-                      <span className="section-label block mb-1">{year}</span>
-                      <h3 className="font-heading text-xl text-purple-950 mb-1">{title}</h3>
-                      <p className="text-purple-500 text-sm font-body">{institution}</p>
-                    </div>
-                  </div>
-
-                  {/* Dot */}
-                  <div className="absolute left-6 sm:left-1/2 sm:-translate-x-1/2 w-5 h-5 rounded-full border-2 border-gold-400 bg-white shadow-sm shadow-gold-200 z-10" />
-
-                  {/* Spacer */}
-                  <div className="flex-1 hidden sm:block" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── Valores ── */}
       <section className="py-24 bg-purple-950 relative overflow-hidden">
