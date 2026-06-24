@@ -130,59 +130,96 @@ export default function AdminInvoicesPage() {
         </div>
       </div>
 
-      {/* Payments table */}
+      {/* Payments - Desktop table / Mobile cards */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Cliente</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Terapia</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Importe</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Fecha</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Factura</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-700">PDF</th>
+        {/* Desktop table */}
+        <table className="hidden sm:table w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Cliente</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Terapia</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Importe</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Fecha</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Factura</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-700">PDF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p) => (
+              <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="px-4 py-3">
+                  <span className="font-medium text-gray-900">{p.user_name}</span>
+                  <span className="text-gray-500 text-xs block">{p.user_email}</span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">{p.therapy_name}</td>
+                <td className="px-4 py-3 font-semibold text-gray-900">{p.amount_cents / 100} €</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(p.created_at)}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs font-mono">
+                  {p.invoice_number || '—'}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {p.invoice_id ? (
+                    <a
+                      href={`/api/admin/invoices/${p.invoice_id}/pdf`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 text-xs font-medium"
+                    >
+                      <Download size={13} />
+                      PDF
+                    </a>
+                  ) : (
+                    <span className="text-gray-300 text-xs">—</span>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{p.user_name}</span>
-                    <span className="text-gray-500 text-xs block">{p.user_email}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{p.therapy_name}</td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{p.amount_cents / 100} €</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(p.created_at)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs font-mono">
-                    {p.invoice_number || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {p.invoice_id ? (
-                      <a
-                        href={`/api/admin/invoices/${p.invoice_id}/pdf`}
-                        target="_blank"
-                        className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 text-xs font-medium"
-                      >
-                        <Download size={13} />
-                        PDF
-                      </a>
-                    ) : (
-                      <span className="text-gray-300 text-xs">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-400">
-                    <CreditCard size={36} className="mx-auto text-gray-300 mb-2" />
-                    {search ? 'Ningún pago coincide' : 'No hay pagos'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center py-12 text-gray-400">
+                  <CreditCard size={36} className="mx-auto text-gray-300 mb-2" />
+                  {search ? 'Ningún pago coincide' : 'No hay pagos'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden divide-y divide-gray-100">
+          {filtered.map((p) => (
+            <div key={p.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1 mr-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">{p.user_name}</p>
+                  <p className="text-xs text-gray-500 truncate">{p.user_email}</p>
+                </div>
+                <span className="text-sm font-bold text-gray-900 whitespace-nowrap">{p.amount_cents / 100} €</span>
+              </div>
+              <p className="text-xs text-gray-600">{p.therapy_name}</p>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{formatDate(p.created_at)}</span>
+                <span className="font-mono">{p.invoice_number || '—'}</span>
+                {p.invoice_id ? (
+                  <a
+                    href={`/api/admin/invoices/${p.invoice_id}/pdf`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 font-medium"
+                  >
+                    <Download size={12} />
+                    PDF
+                  </a>
+                ) : (
+                  <span className="text-gray-300">—</span>
+                )}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <CreditCard size={36} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm">{search ? 'Ningún pago coincide' : 'No hay pagos'}</p>
+            </div>
+          )}
         </div>
       </div>
 
