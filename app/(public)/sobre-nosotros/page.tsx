@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Heart, Star, Leaf, ArrowRight, BookOpen, Award } from "lucide-react";
 import LogoMark from "@/components/ui/LogoMark";
@@ -74,13 +75,15 @@ export default function SobreNosotrosPage() {
             {/* Image */}
             <div className="relative">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-purple-100 to-gold-100/30 -z-10" />
-              <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-purple-800 via-purple-900 to-purple-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2 text-center px-8">
-                  <LogoMark size="lg" />
-                  <p className="font-heading text-4xl text-gold-400 font-medium mt-4">Inma</p>
-                  <p className="text-purple-300 text-sm font-body">Terapeuta Holística</p>
-                </div>
-                <div className="absolute bottom-6 right-6 w-24 h-24 rounded-full border border-gold-500/20" />
+              <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden">
+                <Image
+                  src="/inma.jpeg"
+                  alt="Inma — Terapeuta holística"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-purple-950/40 via-transparent to-transparent" />
               </div>
               <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl shadow-purple-100/60 px-6 py-4 border border-purple-100">
                 <p className="section-label mb-1">Terapeuta holística</p>
