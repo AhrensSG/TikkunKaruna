@@ -24,17 +24,31 @@ function formatDuration(minutes: number) {
 }
 
 export default async function TerapiasPage() {
-  const result = await pool.query(
-    `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
-            t.is_pack, t.session_count, t.session_duration_minutes,
-            COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
-     FROM therapies t
-     LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
-      WHERE t.is_active = true AND t.deleted_at IS NULL
-      GROUP BY t.id
-     ORDER BY t.sort_order ASC, t.created_at ASC`
-  )
-  const therapies = result.rows
+  let therapies: any[] = []
+  try {
+    const result = await pool.query(
+      `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
+              t.is_pack, t.session_count, t.session_duration_minutes,
+              COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
+       FROM therapies t
+       LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
+        WHERE t.is_active = true AND t.deleted_at IS NULL
+        GROUP BY t.id
+       ORDER BY t.sort_order ASC, t.created_at ASC`
+    )
+    therapies = result.rows
+  } catch {
+    const result = await pool.query(
+      `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
+              COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
+       FROM therapies t
+       LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
+        WHERE t.is_active = true AND t.deleted_at IS NULL
+        GROUP BY t.id
+       ORDER BY t.sort_order ASC, t.created_at ASC`
+    )
+    therapies = result.rows.map((t: any) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+  }
 
   const services = therapies.map((t, i) => ({
     Icon: icons[i % icons.length],
