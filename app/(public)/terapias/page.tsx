@@ -32,7 +32,7 @@ export default async function TerapiasPage() {
               COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
        FROM therapies t
        LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
-        WHERE t.is_active = true
+        WHERE t.is_active = true AND t.deleted_at IS NULL
         GROUP BY t.id
        ORDER BY t.sort_order ASC, t.created_at ASC`
     )
