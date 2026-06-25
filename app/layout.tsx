@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Providers from "@/components/Providers";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import "./globals.css";
 
 const cormorantGaramond = Cormorant_Garamond({
@@ -112,7 +113,10 @@ export default function RootLayout({
       className={`${cormorantGaramond.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsentBanner />
+        </Providers>
       </body>
     </html>
   );

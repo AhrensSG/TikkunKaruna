@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Política de Cookies | TikkunKaruna",
   description:
-    "Conoce cómo TikkunKaruna utiliza las cookies técnicas, analíticas y de terceros. Gestiona tus preferencias y protege tu privacidad en nuestra plataforma.",
+    "Política de cookies de TikkunKaruna. Solo usamos cookies para determinar tu país (España u otro) y aplicar el IVA correcto en tu factura.",
 };
 
 export default function CookiesPage() {
@@ -26,95 +26,61 @@ export default function CookiesPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl border border-purple-100 p-8 sm:p-12">
             <p className="text-purple-400 text-sm font-body mb-8">
-              Última actualización: 8 de junio de 2026
+              Junio 2026
             </p>
             <div className="space-y-6 text-purple-700 font-body text-sm leading-relaxed">
               <div>
                 <h2 className="font-heading text-2xl text-purple-950 mb-3">1. ¿Qué son las cookies?</h2>
                 <p>
-                  Las cookies son pequeños archivos de texto que los sitios web almacenan en el navegador del usuario cuando los visita. Permiten que el sitio web recuerde información sobre la visita, como el idioma preferido, las opciones de navegación u otros datos, facilitando la siguiente visita y haciendo que el sitio sea más útil.
+                  Las cookies son pequeños archivos de texto que los sitios web almacenan en el navegador del usuario cuando los visita. Permiten que el sitio web recuerde información sobre la visita para mejorar la experiencia.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="font-heading text-2xl text-purple-950 mb-3">2. ¿Qué cookies usamos y para qué?</h2>
+                <p className="mb-3">En TikkunKaruna utilizamos una única cookie con una finalidad muy concreta:</p>
+
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 mb-3">
+                  <h3 className="font-heading text-lg text-purple-950 mb-1">Cookie de país (tikkun_country)</h3>
+                  <p className="text-purple-700">
+                    Cuando aceptas las cookies, determinamos tu país mediante tu dirección IP. Si eres de España, almacenamos <strong>ES</strong>; si eres de otro país, almacenamos <strong>OTHER</strong>. Esto nos permite aplicar el IVA correspondiente (21% para España, 0% para fuera de España) en tu factura.
+                  </p>
+                  <p className="text-purple-500 text-xs mt-2">Duración: 365 días | Tipo: técnica/funcional</p>
+                </div>
+
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h3 className="font-heading text-lg text-purple-950 mb-1">Cookie de consentimiento (tikkun_cookie_consent)</h3>
+                  <p className="text-purple-700">
+                    Almacena si has aceptado o rechazado las cookies para no volver a mostrarte el banner en tus próximas visitas.
+                  </p>
+                  <p className="text-purple-500 text-xs mt-2">Duración: 365 días | Tipo: técnica</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="font-heading text-2xl text-purple-950 mb-3">3. ¿Compartimos tus datos con terceros?</h2>
+                <p>
+                  No. No compartimos, vendemos ni cedemos a terceros la información obtenida a través de cookies. El único dato que almacenamos (tu país) se usa exclusivamente para la facturación interna.
                 </p>
                 <p className="mt-2">
-                  También pueden utilizarse tecnologías similares como píxeles de seguimiento, etiquetas o localStorage. En esta política, el término &laquo;cookies&raquo; abarca todas estas tecnologías.
+                  Para determinar tu país utilizamos el servicio <strong>ipapi.co</strong>, que no almacena ni registra tu dirección IP. Es una consulta anónima y puntual.
                 </p>
               </div>
 
               <div>
-                <h2 className="font-heading text-2xl text-purple-950 mb-3">2. Tipos de cookies que utilizamos</h2>
-                <p className="mb-3">En TikkunKaruna utilizamos las siguientes categorías de cookies:</p>
-
-                <h3 className="font-heading text-lg text-purple-950 mt-5 mb-2">Cookies técnicas (necesarias)</h3>
+                <h2 className="font-heading text-2xl text-purple-950 mb-3">4. Cómo gestionar las cookies</h2>
                 <p>
-                  Son esenciales para el funcionamiento básico del sitio web y permiten la navegación y el acceso a áreas seguras. Sin estas cookies, el sitio no puede funcionar correctamente. Entre ellas se incluyen las cookies de autenticación (para mantener la sesión iniciada), de seguridad y de gestión de la plataforma de pago.
+                  Puedes aceptar o rechazar las cookies mediante el banner que aparece al acceder al sitio web por primera vez. Si rechazas, no almacenaremos ninguna cookie de país y no podremos determinar tu país automáticamente para la factura.
                 </p>
-                <ul className="list-disc pl-5 space-y-1 mt-2 text-purple-600">
-                  <li><strong>next-auth.*</strong> &mdash; Gestión de sesión de usuario</li>
-                  <li><strong>__stripe_*</strong> &mdash; Seguridad y prevención de fraude en pagos</li>
-                </ul>
-
-                <h3 className="font-heading text-lg text-purple-950 mt-5 mb-2">Cookies analíticas</h3>
-                <p>
-                  Actualmente no utilizamos herramientas de análisis de terceros. Si en el futuro implementáramos herramientas analíticas, actualizaríamos esta política para informar de forma transparente.
+                <p className="mt-2">
+                  También puedes configurar, bloquear o eliminar las cookies desde la configuración de tu navegador en cualquier momento.
                 </p>
-
-                <h3 className="font-heading text-lg text-purple-950 mt-5 mb-2">Cookies de preferencias</h3>
-                <p>
-                  Permiten recordar las preferencias del usuario (como el idioma o la moneda) para personalizar la experiencia de navegación. Actualmente no utilizamos cookies de preferencias, pero si en el futuro las implementáramos, actualizaríamos esta política.
-                </p>
-              </div>
-
-              <div>
-                <h2 className="font-heading text-2xl text-purple-950 mb-3">3. Cookies de terceros</h2>
-                <p>
-                  En nuestro sitio web se utilizan cookies de terceros proveedores de servicios:
-                </p>
-                <ul className="list-disc pl-5 space-y-1 mt-3">
-                  <li>
-                    <strong>Stripe</strong> &mdash; Establece cookies necesarias para procesar los pagos online de forma segura y prevenir el fraude. Stripe puede almacenar cookies propias durante el proceso de pago. Más información en la <a href="https://stripe.com/es/privacy" target="_blank" rel="noopener noreferrer" className="text-gold-600 hover:text-gold-500 underline">Política de Privacidad de Stripe</a>.
-                  </li>
-                  <li>
-                    <strong>NextAuth.js</strong> &mdash; Utiliza cookies técnicas para gestionar la autenticación de usuarios de forma segura.
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h2 className="font-heading text-2xl text-purple-950 mb-3">4. Gestión y configuración de cookies</h2>
-                <p>
-                  Puedes configurar, bloquear o eliminar las cookies en cualquier momento a través de la configuración de tu navegador. También puedes rechazar la instalación de cookies no esenciales mediante el banner de cookies que aparece al acceder al sitio web.
-                </p>
-                <p className="mt-3">A continuación, te indicamos los enlaces para gestionar las cookies en los navegadores más comunes:</p>
-                <ul className="list-disc pl-5 space-y-1 mt-2">
-                  <li>
-                    <a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer" className="text-gold-600 hover:text-gold-500 underline">
-                      Google Chrome
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://support.mozilla.org/es/kb/proteccion-antirastreo-mejorada-de-firefox" target="_blank" rel="noopener noreferrer" className="text-gold-600 hover:text-gold-500 underline">
-                      Mozilla Firefox
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://support.apple.com/es-es/guide/safari/sfri11471/mac" target="_blank" rel="noopener noreferrer" className="text-gold-600 hover:text-gold-500 underline">
-                      Safari (Apple)
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://support.microsoft.com/es-es/microsoft-edge/eliminar-las-cookies-en-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener noreferrer" className="text-gold-600 hover:text-gold-500 underline">
-                      Microsoft Edge
-                    </a>
-                  </li>
-                </ul>
               </div>
 
               <div>
                 <h2 className="font-heading text-2xl text-purple-950 mb-3">5. Consentimiento</h2>
                 <p>
-                  Al acceder por primera vez a nuestro sitio web, se muestra un banner de cookies que te informa de su uso y te permite aceptar o rechazar las cookies no esenciales. Las cookies técnicas no requieren consentimiento, ya que son necesarias para el funcionamiento del sitio.
-                </p>
-                <p className="mt-2">
-                  Puedes retirar tu consentimiento en cualquier momento eliminando las cookies a través de la configuración de tu navegador.
+                  Al hacer clic en &laquo;Aceptar&raquo; en el banner de cookies, consientes el uso de las cookies descritas en esta política. Puedes retirar tu consentimiento en cualquier momento eliminando las cookies desde la configuración de tu navegador.
                 </p>
               </div>
 
