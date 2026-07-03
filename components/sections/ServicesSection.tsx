@@ -6,7 +6,13 @@ import {
 } from "lucide-react";
 import pool from "@/lib/db";
 
-const icons = [Flower2, Zap, TreePine, Moon, Waves, Sun];
+const icons: Record<string, typeof Flower2> = {
+  pack: Flower2,
+  higado: Zap,
+  reiki: TreePine,
+  chakras: Moon,
+  tikun: Sun,
+};
 
 interface TherapyRow {
   id: string
@@ -20,42 +26,63 @@ interface TherapyRow {
   session_duration_minutes: number | null
 }
 
+const HOMEPAGE_THERAPIES = [
+  { id: "41a5ab67-ffd4-4ac1-8245-3c35c6439bbb", displayName: "Pack Reset", iconKey: "pack" },
+  { id: "340d8354-95b5-4a90-a3b4-fb89a35c7642", displayName: "Limpieza de hígado", iconKey: "higado" },
+  { id: "e8794911-add2-4a05-8ddd-d79c82e14ed6", displayName: "Reiki emocional", iconKey: "reiki" },
+  { id: "07fb6c16-02c1-4fc8-ae08-da4c3a2be91e", displayName: "Equilibrado de chakras con Reiki", iconKey: "chakras" },
+  { id: "1b3be20b-5416-469d-bf28-e54fc3579844", displayName: "Pack Tikkun Karuna", iconKey: "tikun" },
+  { id: "263086e9-a756-4c9a-b597-e8799a48c471", displayName: "Pack Bienestar", iconKey: "pack" },
+];
+
 export default async function ServicesSection() {
-  let therapies: TherapyRow[] = []
+  const ids = HOMEPAGE_THERAPIES.map(t => t.id)
+  const dbMap = new Map<string, TherapyRow>()
+
   try {
     const result = await pool.query(
       `SELECT id, name, description, duration_minutes, price_cents, image_url,
               is_pack, session_count, session_duration_minutes
-       FROM therapies WHERE is_active = true AND deleted_at IS NULL AND sort_order > 0
-       ORDER BY sort_order ASC, created_at DESC LIMIT 6`
+       FROM therapies WHERE id = ANY($1) AND is_active = true AND deleted_at IS NULL`,
+      [ids]
     )
-    therapies = result.rows
+    for (const row of result.rows) {
+      dbMap.set(row.id, row)
+    }
   } catch {
     const result = await pool.query(
       `SELECT id, name, description, duration_minutes, price_cents, image_url
-       FROM therapies WHERE is_active = true AND sort_order > 0
-       ORDER BY sort_order ASC, created_at DESC LIMIT 6`
+       FROM therapies WHERE id = ANY($1) AND is_active = true`,
+      [ids]
     )
-    therapies = result.rows.map((t: TherapyRow) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+    for (const row of result.rows) {
+      dbMap.set(row.id, { ...row, is_pack: false, session_count: null, session_duration_minutes: null })
+    }
   }
 
-  const services = therapies.map((t, i) => ({
-    Icon: icons[i % icons.length],
-    id: t.id,
-    name: t.name,
-    shortDesc: t.description.length > 100
-      ? t.description.substring(0, 100) + '...'
-      : t.description,
-    duration: t.duration_minutes >= 60
-      ? `${Math.floor(t.duration_minutes / 60)}h ${t.duration_minutes % 60 > 0 ? (t.duration_minutes % 60) + ' min' : ''}`
-      : `${t.duration_minutes} min`,
-    price: `${(t.price_cents / 100).toFixed(0)} €`,
-    tag: i === 0 ? 'Nueva' : null,
-    image_url: t.image_url,
-    isPack: t.is_pack,
-    sessionCount: t.session_count,
-    sessionDuration: t.session_duration_minutes,
-  }))
+  const services = HOMEPAGE_THERAPIES.map(({ id, displayName, iconKey }) => {
+    const t = dbMap.get(id)
+    const Icon = icons[iconKey]
+    return {
+      Icon,
+      id,
+      name: displayName,
+      shortDesc: t
+        ? (t.description.length > 100 ? t.description.substring(0, 100) + '...' : t.description)
+        : '',
+      duration: t
+        ? (t.duration_minutes >= 60
+          ? `${Math.floor(t.duration_minutes / 60)}h ${t.duration_minutes % 60 > 0 ? (t.duration_minutes % 60) + ' min' : ''}`
+          : `${t.duration_minutes} min`)
+        : '',
+      price: t ? `${(t.price_cents / 100).toFixed(0)} €` : '',
+      image_url: t?.image_url ?? '',
+      isPack: t?.is_pack ?? false,
+      sessionCount: t?.session_count ?? null,
+      sessionDuration: t?.session_duration_minutes ?? null,
+      tag: null,
+    }
+  })
   return (
     <section className="py-24 lg:py-32 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

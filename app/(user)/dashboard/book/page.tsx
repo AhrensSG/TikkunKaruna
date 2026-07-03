@@ -59,6 +59,7 @@ export default function BookPage() {
   const [availableDates, setAvailableDates] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedAge, setAcceptedAge] = useState(false)
   const [packSessions, setPackSessions] = useState<{ date: string | null; time: string | null }[]>([])
   const [packSessionIndex, setPackSessionIndex] = useState(0)
 
@@ -545,7 +546,7 @@ export default function BookPage() {
             <p>Pago seguro procesado por Stripe. No almacenamos tus datos bancarios.</p>
           </div>
 
-          <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
+          <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} ageChecked={acceptedAge} onAgeChange={setAcceptedAge} />
 
           {/* Buttons */}
           <div className="flex gap-3">
@@ -558,7 +559,7 @@ export default function BookPage() {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={submitting || !acceptedTerms}
+              disabled={submitting || !acceptedTerms || !acceptedAge}
               className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white text-sm font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               {submitting && <Loader2 size={15} className="animate-spin" />}

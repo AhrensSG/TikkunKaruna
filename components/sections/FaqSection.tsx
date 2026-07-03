@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: "¿Las sesiones son presenciales u online?",
-    a: "Actualmente ofrecemos sesiones tanto presenciales en Valencia como online a través de videollamada, según la terapia elegida. Consulta la descripción de cada servicio para más información y elige la modalidad que mejor se adapte a ti.",
+    a: "Actualmente todas nuestras sesiones se realizan exclusivamente online a través de videollamada. De esta forma, puedes disfrutar de tus terapias desde cualquier lugar, con la misma cercanía y efectividad que en una sesión presencial.",
   },
   {
     q: "¿Cómo puedo reservar una cita?",
@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "¿Puedo cancelar o cambiar mi reserva?",
-    a: "Sí. Puedes gestionar tus reservas desde tu panel de usuario. Te pedimos que cualquier cambio o cancelación se realice con al menos 24 horas de antelación. Las cancelaciones con más de 24 horas tienen reembolso íntegro (descontando comisiones de pago). Entre 24 y 2 horas antes, puedes reprogramar sin coste. Con menos de 2 horas, no se realiza reembolso.",
+    a: "Sí, puedes gestionar tus reservas desde tu panel de usuario. No realizamos reembolsos, pero puedes reprogramar sin coste siempre que nos avises con al menos 2 horas de antelación.",
   },
 ];
 
