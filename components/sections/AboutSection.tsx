@@ -20,7 +20,7 @@ export default function AboutSection() {
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-purple-100 to-gold-100/30 -z-10" />
             <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden">
               <Image
-                src="/inma.jpeg"
+                src="/inma%20perfil.jpeg"
                 alt="Inma — Terapeuta holística"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
