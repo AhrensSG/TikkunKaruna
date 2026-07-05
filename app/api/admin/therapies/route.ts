@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
+import { therapies, therapyRequirements } from '@/lib/db/schema'
+import { eq, sql, asc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,17 +12,17 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const result = await pool.query(
-    `SELECT t.*, COALESCE(
-       json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL),
-       '[]'
-     ) AS requirements
-     FROM therapies t
-     LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
-     WHERE t.deleted_at IS NULL
-     GROUP BY t.id
-     ORDER BY t.created_at DESC`
-  )
+  const result = await db.execute(sql`
+    SELECT t.*, COALESCE(
+      json_agg(tr.description ORDER BY tr.sort_order) FILTER (WHERE tr.description IS NOT NULL),
+      '[]'
+    ) AS requirements
+    FROM therapies t
+    LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
+    WHERE t.deleted_at IS NULL
+    GROUP BY t.id
+    ORDER BY t.created_at DESC
+  `)
 
   return NextResponse.json({ therapies: result.rows })
 }
@@ -38,26 +40,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    const result = await pool.query(
-      `INSERT INTO therapies (name, description, duration_minutes, price_cents, is_active, image_url, video_url, is_pack, session_count, session_duration_minutes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [name, description || '', duration_minutes, price_cents, is_active ?? true, image_url || '', video_url || '', is_pack ?? false, session_count ?? null, session_duration_minutes ?? null]
-    )
+    const result = await db.insert(therapies).values({
+      name,
+      description: description || '',
+      durationMinutes: duration_minutes,
+      priceCents: price_cents,
+      isActive: is_active ?? true,
+      imageUrl: image_url || '',
+      videoUrl: video_url || '',
+      isPack: is_pack ?? false,
+      sessionCount: session_count ?? null,
+      sessionDurationMinutes: session_duration_minutes ?? null,
+    }).returning()
 
-    const therapy = result.rows[0]
+    const therapy = result[0]
 
     if (requirements && Array.isArray(requirements) && requirements.length > 0) {
-      const values = requirements.map((_: string, i: number) => `($1, $${i + 2})`).join(', ')
-      await pool.query(
-        `INSERT INTO therapy_requirements (therapy_id, description) VALUES ${values}`,
-        [therapy.id, ...requirements]
+      await db.insert(therapyRequirements).values(
+        requirements.map((desc: string, i: number) => ({
+          therapyId: therapy.id,
+          description: desc,
+          sortOrder: i,
+        }))
       )
     }
 
-    therapy.requirements = requirements || []
-
-    return NextResponse.json({ therapy }, { status: 201 })
+    return NextResponse.json({ therapy: { ...therapy, requirements: requirements || [] } }, { status: 201 })
   } catch (error) {
     console.error('Error creating therapy:', error)
     return NextResponse.json({ error: 'Error al crear la terapia' }, { status: 500 })

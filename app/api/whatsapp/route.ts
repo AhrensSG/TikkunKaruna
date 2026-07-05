@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { sendWhatsApp, notifyAdminWhatsApp } from '@/lib/whatsapp'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { sql } from 'drizzle-orm'
 
 export async function POST(req: Request) {
   const unauthorized = await requireAdmin()
@@ -31,12 +32,14 @@ export async function GET() {
   const unauthorized = await requireAdmin()
   if (unauthorized) return unauthorized
 
-  const { rows } = await pool.query(
-    `SELECT id, name, email, phone FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1`
-  )
+  const result = await db.execute(sql`
+    SELECT id, name, email, phone FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1
+  `)
+
+  const admin = result.rows[0]
 
   return NextResponse.json({
     configured: !!process.env.WHATSAPP_API_KEY && !!process.env.WHATSAPP_PHONE_NUMBER_ID,
-    admin: rows[0] ? { name: rows[0].name, email: rows[0].email, phone: rows[0].phone } : null,
+    admin: admin ? { name: admin.name, email: admin.email, phone: admin.phone } : null,
   })
 }

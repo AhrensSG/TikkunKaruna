@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
 import { requireAdmin } from "@/lib/auth-helpers"
+import { bookings, bookingSessions } from "@/lib/db/schema"
+import { eq, and, sql } from "drizzle-orm"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -11,17 +13,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const body = await req.json()
 
     if (body.action === 'cancel') {
-      const { rowCount } = await pool.query(
-        `UPDATE bookings SET status = 'cancelled' WHERE id = $1 AND status = 'pending'`,
-        [id]
-      )
-      if (rowCount === 0) {
+      const result = await db.execute(sql`
+        UPDATE bookings SET status = 'cancelled' WHERE id = ${id} AND status = 'pending' RETURNING id
+      `)
+      if (result.rows.length === 0) {
         return NextResponse.json({ error: "Reserva no encontrada o ya no está pendiente" }, { status: 404 })
       }
-      await pool.query(
-        `UPDATE booking_sessions SET status = 'cancelled' WHERE booking_id = $1 AND status = 'pending'`,
-        [id]
-      )
+      await db.execute(sql`
+        UPDATE booking_sessions SET status = 'cancelled' WHERE booking_id = ${id} AND status = 'pending'
+      `)
       return NextResponse.json({ success: true })
     }
 
@@ -35,40 +35,41 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: "Fecha inválida" }, { status: 400 })
     }
 
-    const booking = await pool.query(
-      `SELECT b.id, b.therapy_id, b.start_time, t.is_pack, t.session_duration_minutes, t.duration_minutes
-       FROM bookings b JOIN therapies t ON t.id = b.therapy_id
-       WHERE b.id = $1 AND b.status = 'confirmed'`,
-      [id]
-    )
-    if (booking.rows.length === 0) {
+    const bookingResult = await db.execute(sql`
+      SELECT b.id, b.therapy_id, b.start_time, t.is_pack, t.session_duration_minutes, t.duration_minutes
+      FROM bookings b JOIN therapies t ON t.id = b.therapy_id
+      WHERE b.id = ${id} AND b.status = 'confirmed'
+    `)
+    if (bookingResult.rows.length === 0) {
       return NextResponse.json({ error: "Reserva no encontrada o no confirmada" }, { status: 404 })
     }
 
-    const b = booking.rows[0]
+    const b = bookingResult.rows[0] as {
+      id: string; therapy_id: string; start_time: string;
+      is_pack: boolean; session_duration_minutes: number | null; duration_minutes: number;
+    }
     const perSessionDuration = b.is_pack && b.session_duration_minutes
       ? b.session_duration_minutes
       : b.duration_minutes
     const newEnd = new Date(newStart.getTime() + perSessionDuration * 60000)
 
     if (session_id) {
-      const { rows } = await pool.query(
-        `UPDATE booking_sessions SET start_time = $1, end_time = $2 WHERE id = $3 AND booking_id = $4
-         RETURNING *`,
-        [newStart.toISOString(), newEnd.toISOString(), session_id, id]
-      )
-      if (rows.length === 0) {
+      const sessionResult = await db.update(bookingSessions)
+        .set({ startTime: newStart, endTime: newEnd })
+        .where(and(eq(bookingSessions.id, session_id), eq(bookingSessions.bookingId, id)))
+        .returning()
+      if (sessionResult.length === 0) {
         return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 })
       }
-      return NextResponse.json({ booking: { ...b, sessions: rows, start_time: newStart.toISOString(), end_time: newEnd.toISOString() } })
+      return NextResponse.json({ booking: { ...b, sessions: sessionResult, start_time: newStart.toISOString(), end_time: newEnd.toISOString() } })
     }
 
-    const { rows } = await pool.query(
-      `UPDATE bookings SET start_time = $1, end_time = $2 WHERE id = $3 RETURNING *`,
-      [newStart.toISOString(), newEnd.toISOString(), id]
-    )
+    const updateResult = await db.update(bookings)
+      .set({ startTime: newStart, endTime: newEnd })
+      .where(eq(bookings.id, id))
+      .returning()
 
-    return NextResponse.json({ booking: rows[0] })
+    return NextResponse.json({ booking: updateResult[0] })
   } catch (error) {
     console.error("Error rescheduling booking:", error)
     return NextResponse.json({ error: "Error al reprogramar" }, { status: 500 })

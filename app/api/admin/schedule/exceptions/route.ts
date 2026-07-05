@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { scheduleExceptions } from '@/lib/db/schema'
 
 export async function POST(req: Request) {
   const unauthorized = await requireAdmin()
@@ -13,14 +14,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
     }
 
-    const { rows } = await pool.query(
-      `INSERT INTO schedule_exceptions (exception_date, start_time, end_time, is_available, reason)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, exception_date, start_time, end_time, is_available, reason`,
-      [exception_date, start_time || null, end_time || null, is_available ?? false, reason || '']
-    )
+    const result = await db.insert(scheduleExceptions).values({
+      exceptionDate: exception_date,
+      startTime: start_time || null,
+      endTime: end_time || null,
+      isAvailable: is_available ?? false,
+      reason: reason || '',
+    }).returning({
+      id: scheduleExceptions.id,
+      exception_date: scheduleExceptions.exceptionDate,
+      start_time: scheduleExceptions.startTime,
+      end_time: scheduleExceptions.endTime,
+      is_available: scheduleExceptions.isAvailable,
+      reason: scheduleExceptions.reason,
+    })
 
-    return NextResponse.json({ exception: rows[0] })
+    return NextResponse.json({ exception: result[0] })
   } catch (error) {
     console.error('Error creating exception:', error)
     return NextResponse.json({ error: 'Error al crear excepción' }, { status: 500 })

@@ -1,4 +1,6 @@
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
+import { rateLimits } from '@/lib/db/schema'
+import { and, eq, gte, sql, lt } from 'drizzle-orm'
 
 interface RateLimitConfig {
   maxRequests: number
@@ -18,27 +20,34 @@ export async function checkRateLimit(
   const { maxRequests, windowMs } = { ...defaults, ...config }
   const windowStart = new Date(Date.now() - windowMs)
 
-  await pool.query(
-    `DELETE FROM rate_limits WHERE expires_at < NOW()`
+  await db.delete(rateLimits).where(
+    lt(rateLimits.expiresAt, new Date())
   )
 
-  const { rows } = await pool.query(
-    `SELECT COUNT(*) as count FROM rate_limits
-     WHERE identifier = $1 AND action = $2 AND created_at >= $3`,
-    [identifier, action, windowStart]
-  )
+  const [row] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(rateLimits)
+    .where(
+      and(
+        eq(rateLimits.identifier, identifier),
+        eq(rateLimits.action, action),
+        gte(rateLimits.createdAt, windowStart),
+      )
+    )
 
-  const count = parseInt(rows[0].count, 10)
+  const count = row?.count ?? 0
 
   if (count >= maxRequests) {
     return { allowed: false, remaining: 0 }
   }
 
   const expiresAt = new Date(Date.now() + windowMs)
-  await pool.query(
-    `INSERT INTO rate_limits (identifier, action, expires_at) VALUES ($1, $2, $3)`,
-    [identifier, action, expiresAt]
-  )
+  await db.insert(rateLimits).values({
+    identifier,
+    action,
+    expiresAt,
+    createdAt: new Date(),
+  })
 
   return { allowed: true, remaining: maxRequests - count - 1 }
 }

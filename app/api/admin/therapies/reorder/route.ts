@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
+import { therapies } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,10 +20,9 @@ export async function PUT(req: Request) {
     }
 
     for (const item of orders) {
-      await pool.query(
-        'UPDATE therapies SET sort_order = $1 WHERE id = $2',
-        [item.sort_order, item.id]
-      )
+      await db.update(therapies)
+        .set({ sortOrder: item.sort_order })
+        .where(eq(therapies.id, item.id))
     }
 
     return NextResponse.json({ success: true })

@@ -29,6 +29,17 @@ function timeToStr(t: string) {
   return t.length <= 5 ? t : t.slice(0, 5)
 }
 
+function minutesDiff(a: string, b: string) {
+  const [ah, am] = a.split(':').map(Number)
+  const [bh, bm] = b.split(':').map(Number)
+  return (bh * 60 + bm) - (ah * 60 + am)
+}
+
+function isValidTimeRange(start: string, end: string, minMinutes: number) {
+  if (!start || !end) return false
+  return minutesDiff(start, end) >= minMinutes
+}
+
 export default function SchedulePage() {
   const [weekly, setWeekly] = useState<WeeklyEntry[]>([])
   const [exceptions, setExceptions] = useState<Exception[]>([])
@@ -37,7 +48,10 @@ export default function SchedulePage() {
 
   const [newExceptionDate, setNewExceptionDate] = useState('')
   const [newExceptionReason, setNewExceptionReason] = useState('')
-  const [_newExceptionAllDay, _setNewExceptionAllDay] = useState(true)
+  const [exceptionMode, setExceptionMode] = useState<'fullDay' | 'timeRange'>('fullDay')
+  const [newExceptionStart, setNewExceptionStart] = useState('09:00')
+  const [newExceptionEnd, setNewExceptionEnd] = useState('10:00')
+  const [blocking, setBlocking] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -73,12 +87,7 @@ export default function SchedulePage() {
     setWeekly(updated)
   }
 
-  const isValidRange = (s: WeeklyEntry) => {
-    if (!s.start_time || !s.end_time) return false
-    const [sh, sm] = s.start_time.split(':').map(Number)
-    const [eh, em] = s.end_time.split(':').map(Number)
-    return (eh * 60 + em) - (sh * 60 + sm) >= 30
-  }
+  const isValidRange = (s: WeeklyEntry) => isValidTimeRange(s.start_time, s.end_time, 30)
 
   const copyDayToAll = (day: number) => {
     const daySlots = weekly.filter((e) => e.day_of_week === day)
@@ -121,28 +130,44 @@ export default function SchedulePage() {
 
   const handleAddException = async () => {
     if (!newExceptionDate) return
+    if (exceptionMode === 'timeRange') {
+      if (!newExceptionStart || !newExceptionEnd) return
+      if (!isValidTimeRange(newExceptionStart, newExceptionEnd, 60)) {
+        alert('El rango debe ser de al menos 1 hora.')
+        return
+      }
+    }
+    setBlocking(true)
     try {
+      const body: Record<string, unknown> = {
+        exception_date: newExceptionDate,
+        is_available: false,
+        reason: newExceptionReason,
+      }
+      if (exceptionMode === 'timeRange') {
+        body.start_time = newExceptionStart
+        body.end_time = newExceptionEnd
+      }
       const res = await fetch('/api/admin/schedule/exceptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exception_date: newExceptionDate,
-          is_available: false,
-          reason: newExceptionReason,
-        }),
+        body: JSON.stringify(body),
       })
       if (res.ok) {
         const data = await res.json()
         setExceptions([data.exception, ...exceptions])
         setNewExceptionDate('')
         setNewExceptionReason('')
-        _setNewExceptionAllDay(true)
+        setNewExceptionStart('09:00')
+        setNewExceptionEnd('10:00')
+        setExceptionMode('fullDay')
       } else {
         alert('Error al crear excepción')
       }
     } catch {
       alert('Error de conexión')
     }
+    setBlocking(false)
   }
 
   const handleDeleteException = async (id: string) => {
@@ -263,10 +288,34 @@ export default function SchedulePage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-6">
           <Ban size={18} className="text-red-500" />
-          <h2 className="text-lg font-semibold text-gray-900">Excepciones (días bloqueados)</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Excepciones</h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
+        {/* Mode toggle */}
+        <div className="flex items-center gap-4 mb-4">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="exceptionMode"
+              checked={exceptionMode === 'fullDay'}
+              onChange={() => setExceptionMode('fullDay')}
+              className="accent-red-500"
+            />
+            Bloquear día completo
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="exceptionMode"
+              checked={exceptionMode === 'timeRange'}
+              onChange={() => setExceptionMode('timeRange')}
+              className="accent-orange-500"
+            />
+            Bloquear rango horario
+          </label>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-4">
           <div className="w-full sm:w-auto">
             <label className="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
             <input
@@ -276,25 +325,50 @@ export default function SchedulePage() {
               className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
             />
           </div>
+          {exceptionMode === 'timeRange' && (
+            <>
+              <div className="w-full sm:w-auto">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+                <input
+                  type="time"
+                  value={newExceptionStart}
+                  onChange={(e) => setNewExceptionStart(e.target.value)}
+                  className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                />
+              </div>
+              <div className="w-full sm:w-auto">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+                <input
+                  type="time"
+                  value={newExceptionEnd}
+                  onChange={(e) => setNewExceptionEnd(e.target.value)}
+                  className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                />
+              </div>
+            </>
+          )}
           <div className="w-full sm:w-auto">
             <label className="block text-xs font-medium text-gray-600 mb-1">Motivo</label>
             <input
               type="text"
               value={newExceptionReason}
               onChange={(e) => setNewExceptionReason(e.target.value)}
-              placeholder="Ej: Festivo nacional"
-              className="w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+              placeholder={exceptionMode === 'fullDay' ? 'Ej: Festivo nacional' : 'Ej: Reunión'}
+              className="w-full sm:w-36 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
             />
           </div>
           <button
             onClick={handleAddException}
-            disabled={!newExceptionDate}
+            disabled={!newExceptionDate || (exceptionMode === 'timeRange' && (!newExceptionStart || !newExceptionEnd)) || blocking}
             className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
-            <Plus size={14} />
-            Bloquear día
+            {blocking ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            {blocking ? 'Bloqueando...' : exceptionMode === 'fullDay' ? 'Bloquear día' : 'Bloquear horas'}
           </button>
         </div>
+        {exceptionMode === 'timeRange' && !isValidTimeRange(newExceptionStart, newExceptionEnd, 60) && newExceptionStart && newExceptionEnd && (
+          <p className="text-xs text-red-500 -mt-2 mb-4">El rango debe ser de al menos 1 hora.</p>
+        )}
 
         {exceptions.length === 0 ? (
           <p className="text-sm text-gray-400 italic">No hay excepciones registradas.</p>
@@ -309,6 +383,13 @@ export default function SchedulePage() {
                       day: 'numeric', month: 'long', year: 'numeric',
                     })}
                   </span>
+                  {exc.start_time && exc.end_time ? (
+                    <span className="text-sm font-medium text-red-600">
+                      ({timeToStr(exc.start_time)} — {timeToStr(exc.end_time)})
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">Todo el día</span>
+                  )}
                   {exc.reason && (
                     <span className="text-sm text-gray-500">— {exc.reason}</span>
                   )}

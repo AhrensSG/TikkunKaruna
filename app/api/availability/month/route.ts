@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
+import { therapies, scheduleWeekly, scheduleExceptions, bookings, bookingSessions } from '@/lib/db/schema'
 import { generateSlots } from '@/lib/slots'
 import { getEffectiveDuration } from '@/lib/therapy'
 import { BUFFER_MINUTES, MIN_HOURS_FROM_NOW, DEFAULT_DURATION_MINUTES } from '@/lib/constants'
 import { toDateStr } from '@/lib/date'
+import { eq, and, sql } from 'drizzle-orm'
 
 export async function GET(req: Request) {
   try {
@@ -19,12 +21,18 @@ export async function GET(req: Request) {
 
     let durationMinutes = DEFAULT_DURATION_MINUTES
     if (therapyId) {
-      const therapy = await pool.query(
-        "SELECT duration_minutes, is_pack, session_duration_minutes FROM therapies WHERE id = $1 AND is_active = true AND deleted_at IS NULL",
-        [therapyId]
-      )
-      if (therapy.rows.length > 0) {
-        durationMinutes = getEffectiveDuration(therapy.rows[0])
+      const [therapy] = await db
+        .select({
+          durationMinutes: therapies.durationMinutes,
+          isPack: therapies.isPack,
+          sessionDurationMinutes: therapies.sessionDurationMinutes,
+        })
+        .from(therapies)
+        .where(and(eq(therapies.id, therapyId), eq(therapies.isActive, true), sql`${therapies.deletedAt} IS NULL`))
+        .limit(1)
+
+      if (therapy) {
+        durationMinutes = getEffectiveDuration(therapy)
       }
     }
 
@@ -46,22 +54,25 @@ export async function GET(req: Request) {
 
       const dayOfWeek = dayDate.getDay()
 
-      const exception = await pool.query(
-        `SELECT is_available FROM schedule_exceptions WHERE exception_date = $1 LIMIT 1`,
-        [dateStr]
-      )
-      if (exception.rows.length > 0 && !exception.rows[0].is_available) continue
+      const [exception] = await db
+        .select({ isAvailable: scheduleExceptions.isAvailable })
+        .from(scheduleExceptions)
+        .where(eq(scheduleExceptions.exceptionDate, dateStr))
+        .limit(1)
 
-      const ranges = await pool.query(
-        `SELECT start_time, end_time FROM schedule_weekly WHERE day_of_week = $1 ORDER BY start_time`,
-        [dayOfWeek]
-      )
+      if (exception && !exception.isAvailable) continue
 
-      if (ranges.rows.length === 0) continue
+      const ranges = await db
+        .select({ startTime: scheduleWeekly.startTime, endTime: scheduleWeekly.endTime })
+        .from(scheduleWeekly)
+        .where(eq(scheduleWeekly.dayOfWeek, dayOfWeek))
+        .orderBy(scheduleWeekly.startTime)
+
+      if (ranges.length === 0) continue
 
       let allSlots: string[] = []
-      for (const r of ranges.rows) {
-        allSlots = allSlots.concat(generateSlots(r.start_time, r.end_time, durationMinutes))
+      for (const r of ranges) {
+        allSlots = allSlots.concat(generateSlots(r.startTime, r.endTime, durationMinutes))
       }
       allSlots = [...new Set(allSlots)]
 
@@ -70,20 +81,36 @@ export async function GET(req: Request) {
       const dayStart = new Date(`${dateStr}T00:00:00`)
       const dayEnd = new Date(`${dateStr}T23:59:59`)
 
-      const occupied = await pool.query(
-        `SELECT start_time::text, end_time::text FROM bookings
-         WHERE status = 'confirmed'
-           AND start_time < $2::timestamptz
-           AND end_time > $1::timestamptz
-         UNION ALL
-         SELECT bs.start_time::text, bs.end_time::text FROM booking_sessions bs
-         JOIN bookings b ON b.id = bs.booking_id
-         WHERE bs.status = 'confirmed'
-           AND b.status = 'confirmed'
-           AND bs.start_time < $2::timestamptz
-           AND bs.end_time > $1::timestamptz`,
-        [dayStart.toISOString(), dayEnd.toISOString()]
-      )
+      const occupied = await db
+        .select({
+          startTime: sql`${bookings.startTime}::text`,
+          endTime: sql`${bookings.endTime}::text`,
+        })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.status, 'confirmed'),
+            sql`${bookings.startTime} < ${dayEnd.toISOString()}::timestamptz`,
+            sql`${bookings.endTime} > ${dayStart.toISOString()}::timestamptz`,
+          ),
+        )
+        .union(
+          db
+            .select({
+              startTime: sql`${bookingSessions.startTime}::text`,
+              endTime: sql`${bookingSessions.endTime}::text`,
+            })
+            .from(bookingSessions)
+            .innerJoin(bookings, eq(bookingSessions.bookingId, bookings.id))
+            .where(
+              and(
+                eq(bookingSessions.status, 'confirmed'),
+                eq(bookings.status, 'confirmed'),
+                sql`${bookingSessions.startTime} < ${dayEnd.toISOString()}::timestamptz`,
+                sql`${bookingSessions.endTime} > ${dayStart.toISOString()}::timestamptz`,
+              ),
+            ),
+        )
 
       const now = new Date()
 
@@ -96,9 +123,10 @@ export async function GET(req: Request) {
 
         if (minStart && slotStart < minStart) return false
 
-        return !occupied.rows.some((b) => {
-          const bStart = new Date(b.start_time)
-          const bEnd = new Date(b.end_time)
+        const occupiedRows = occupied as { startTime: string; endTime: string }[]
+        return !occupiedRows.some((b) => {
+          const bStart = new Date(b.startTime)
+          const bEnd = new Date(b.endTime)
           const overlapStart = new Date(bStart.getTime() - BUFFER_MINUTES * 60_000)
           const overlapEnd = new Date(bEnd.getTime() + BUFFER_MINUTES * 60_000)
           return slotStart < overlapEnd && slotEnd > overlapStart

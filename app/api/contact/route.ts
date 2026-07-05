@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { sendEmail } from '@/emails'
 import { escapeHtml } from '@/lib/escape'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { contactMessages } from '@/lib/db/schema'
 
 export async function GET() {
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -26,10 +27,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nombre, email y mensaje son obligatorios' }, { status: 400 })
     }
 
-    await pool.query(
-      `INSERT INTO contact_messages (name, email, subject, message) VALUES ($1, $2, $3, $4)`,
-      [name, email, subject || '', message]
-    )
+    await db.insert(contactMessages).values({
+      name,
+      email,
+      subject: subject || '',
+      message,
+    })
 
     const html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">

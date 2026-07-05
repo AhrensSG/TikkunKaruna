@@ -1,4 +1,6 @@
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
+import { bookings, bookingSessions } from '@/lib/db/schema'
+import { and, eq, sql } from 'drizzle-orm'
 import { BUFFER_MINUTES } from '@/lib/constants'
 
 export async function checkOverlap(
@@ -9,24 +11,46 @@ export async function checkOverlap(
     const sStart = new Date(s.start_time)
     const sEnd = new Date(sStart.getTime() + durationMinutes * 60_000)
 
-    const result = await pool.query(
-      `SELECT id::text FROM bookings
-       WHERE status = 'confirmed'
-         AND tstzrange(start_time, end_time) &&
-             tstzrange($1::timestamptz - ($3 || ' minutes')::interval,
-                       $2::timestamptz + ($3 || ' minutes')::interval)
-       UNION ALL
-       SELECT bs.id::text FROM booking_sessions bs
-       JOIN bookings b ON b.id = bs.booking_id
-       WHERE bs.status = 'confirmed'
-         AND b.status = 'confirmed'
-         AND tstzrange(bs.start_time, bs.end_time) &&
-             tstzrange($1::timestamptz - ($3 || ' minutes')::interval,
-                       $2::timestamptz + ($3 || ' minutes')::interval)`,
-      [sStart.toISOString(), sEnd.toISOString(), String(BUFFER_MINUTES)]
-    )
+    const [booking] = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, 'confirmed'),
+          sql`tstzrange(${bookings.startTime}, ${bookings.endTime}) &&
+              tstzrange(
+                ${sStart.toISOString()}::timestamptz - (${String(BUFFER_MINUTES)} || ' minutes')::interval,
+                ${sEnd.toISOString()}::timestamptz + (${String(BUFFER_MINUTES)} || ' minutes')::interval
+              )`,
+        ),
+      )
+      .limit(1)
 
-    if (result.rows.length > 0) {
+    if (booking) {
+      const d = sStart.toLocaleDateString('es-ES', {
+        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      })
+      return `El horario ${d} ya está reservado. Elegí otro.`
+    }
+
+    const [session] = await db
+      .select({ id: bookingSessions.id })
+      .from(bookingSessions)
+      .innerJoin(bookings, eq(bookingSessions.bookingId, bookings.id))
+      .where(
+        and(
+          eq(bookingSessions.status, 'confirmed'),
+          eq(bookings.status, 'confirmed'),
+          sql`tstzrange(${bookingSessions.startTime}, ${bookingSessions.endTime}) &&
+              tstzrange(
+                ${sStart.toISOString()}::timestamptz - (${String(BUFFER_MINUTES)} || ' minutes')::interval,
+                ${sEnd.toISOString()}::timestamptz + (${String(BUFFER_MINUTES)} || ' minutes')::interval
+              )`,
+        ),
+      )
+      .limit(1)
+
+    if (session) {
       const d = sStart.toLocaleDateString('es-ES', {
         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
       })

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
+import { sql } from 'drizzle-orm'
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -11,11 +12,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params
 
   try {
-    await pool.query(
-      `UPDATE bookings SET message_read_at = NOW()
-       WHERE id = $1 AND user_id = $2 AND status = 'completed' AND admin_notes IS NOT NULL`,
-      [id, session.user.id]
-    )
+    await db.execute(sql`
+      UPDATE bookings SET message_read_at = NOW()
+      WHERE id = ${id} AND user_id = ${session.user.id} AND status = 'completed' AND admin_notes IS NOT NULL
+    `)
   } catch {
     // columna message_read_at no existe aún — ignorar
   }

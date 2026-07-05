@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
 import { checkOverlap } from '@/lib/overlap'
 import { getEffectiveDuration } from '@/lib/therapy'
 import { MIN_HOURS_BETWEEN_SESSIONS, MIN_HOURS_FROM_NOW, STRIPE_CURRENCY } from '@/lib/constants'
+import { sql } from 'drizzle-orm'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -20,17 +21,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Falta el id de la terapia' }, { status: 400 })
     }
 
-    const therapyResult = await pool.query(
-      `SELECT id, name, price_cents, duration_minutes, is_pack, session_count, session_duration_minutes
-       FROM therapies WHERE id = $1 AND is_active = true AND deleted_at IS NULL`,
-      [therapyId]
-    )
+    const therapyResult = await db.execute(sql`
+      SELECT id, name, price_cents, duration_minutes, is_pack, session_count, session_duration_minutes
+      FROM therapies WHERE id = ${therapyId} AND is_active = true AND deleted_at IS NULL
+    `)
 
     if (therapyResult.rows.length === 0) {
       return NextResponse.json({ error: 'Terapia no encontrada' }, { status: 404 })
     }
 
-    const therapy = therapyResult.rows[0]
+    const therapy = therapyResult.rows[0] as {
+      id: string; name: string; price_cents: number; duration_minutes: number;
+      is_pack: boolean; session_count: number | null; session_duration_minutes: number | null;
+    }
     const perSessionDuration = getEffectiveDuration(therapy)
 
     let sessions: { start_time: string }[] = []
@@ -89,35 +92,28 @@ export async function POST(req: Request) {
     const bookingStart = new Date(firstSession.start_time)
     const bookingEnd = new Date(bookingStart.getTime() + perSessionDuration * 60_000)
 
-    const client = await pool.connect()
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        UPDATE bookings SET status = 'cancelled'
+        WHERE user_id = ${session.user.id} AND therapy_id = ${therapyId} AND status = 'pending'
+      `)
 
-    try {
-      await client.query('BEGIN')
-
-      await client.query(
-        `UPDATE bookings SET status = 'cancelled'
-         WHERE user_id = $1 AND therapy_id = $2 AND status = 'pending'`,
-        [session.user.id, therapyId]
-      )
-
-      const bookingResult = await client.query(
-        `INSERT INTO bookings (user_id, therapy_id, start_time, end_time, status)
-         VALUES ($1, $2, $3, $4, 'pending')
-         RETURNING id`,
-        [session.user.id, therapyId, bookingStart.toISOString(), bookingEnd.toISOString()]
-      )
-      const bookingId = bookingResult.rows[0].id
+      const bookingResult = await tx.execute(sql`
+        INSERT INTO bookings (user_id, therapy_id, start_time, end_time, status)
+        VALUES (${session.user.id}, ${therapyId}, ${bookingStart.toISOString()}, ${bookingEnd.toISOString()}, 'pending')
+        RETURNING id
+      `)
+      const bookingId = bookingResult.rows[0].id as string
 
       if (therapy.is_pack) {
         for (let i = 0; i < sessions.length; i++) {
           const s = sessions[i]
           const sStart = new Date(s.start_time)
           const sEnd = new Date(sStart.getTime() + perSessionDuration * 60_000)
-          await client.query(
-            `INSERT INTO booking_sessions (booking_id, session_number, start_time, end_time, status)
-             VALUES ($1, $2, $3, $4, 'pending')`,
-            [bookingId, i + 1, sStart.toISOString(), sEnd.toISOString()]
-          )
+          await tx.execute(sql`
+            INSERT INTO booking_sessions (booking_id, session_number, start_time, end_time, status)
+            VALUES (${bookingId}, ${i + 1}, ${sStart.toISOString()}, ${sEnd.toISOString()}, 'pending')
+          `)
         }
       }
 
@@ -141,20 +137,14 @@ export async function POST(req: Request) {
         cancel_url: `${process.env.NEXT_PUBLIC_API_URL}/dashboard/book?canceled=true`,
       })
 
-      await client.query(
-        `UPDATE bookings SET stripe_session_id = $1 WHERE id = $2`,
-        [checkoutSession.id, bookingId]
-      )
+      await tx.execute(sql`
+        UPDATE bookings SET stripe_session_id = ${checkoutSession.id} WHERE id = ${bookingId}
+      `)
 
-      await client.query('COMMIT')
+      return { url: checkoutSession.url }
+    })
 
-      return NextResponse.json({ url: checkoutSession.url })
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
-    }
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error creating checkout session:', error)
     return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })

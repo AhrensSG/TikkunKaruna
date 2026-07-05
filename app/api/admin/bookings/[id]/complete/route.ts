@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
 import { sendEmail, sessionCompletedHtml } from "@/emails"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { sendWhatsApp } from "@/lib/whatsapp"
+import { bookings, bookingSessions } from "@/lib/db/schema"
+import { eq, and, sql } from "drizzle-orm"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -12,29 +14,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params
     const { notes } = await req.json()
 
-    const { rows: bookings } = await pool.query(
-      `UPDATE bookings SET status = 'completed', admin_notes = $1
-       FROM users, therapies
-       WHERE bookings.id = $2 AND bookings.status = 'confirmed'
-         AND bookings.user_id = users.id
-         AND bookings.therapy_id = therapies.id
-       RETURNING bookings.id, bookings.status, bookings.admin_notes,
-                 users.name AS user_name, users.email AS user_email, users.phone AS user_phone,
-                 therapies.name AS therapy_name`,
-      [notes || null, id]
-    )
+    const result = await db.execute(sql`
+      UPDATE bookings SET status = 'completed', admin_notes = ${notes || null}
+      FROM users, therapies
+      WHERE bookings.id = ${id} AND bookings.status = 'confirmed'
+        AND bookings.user_id = users.id
+        AND bookings.therapy_id = therapies.id
+      RETURNING bookings.id, bookings.status, bookings.admin_notes,
+                users.name AS user_name, users.email AS user_email, users.phone AS user_phone,
+                therapies.name AS therapy_name
+    `)
 
-    if (bookings.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Reserva no encontrada o ya completada" }, { status: 404 })
     }
 
-    const b = bookings[0]
+    const b = result.rows[0] as {
+      id: string; status: string; admin_notes: string | null;
+      user_name: string; user_email: string; user_phone: string | null; therapy_name: string;
+    }
 
-    await pool.query(
-      `UPDATE booking_sessions SET status = 'completed'
-       WHERE booking_id = $1 AND status = 'confirmed'`,
-      [id]
-    )
+    await db.update(bookingSessions)
+      .set({ status: 'completed' })
+      .where(and(eq(bookingSessions.bookingId, id), eq(bookingSessions.status, 'confirmed')))
 
     if (b.admin_notes) {
       await sendEmail(

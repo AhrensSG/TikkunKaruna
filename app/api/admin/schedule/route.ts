@@ -1,19 +1,35 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { scheduleWeekly, scheduleExceptions } from '@/lib/db/schema'
+import { sql, asc } from 'drizzle-orm'
 
 export async function GET() {
   const unauthorized = await requireAdmin()
   if (unauthorized) return unauthorized
 
   try {
-    const weekly = await pool.query(
-      'SELECT id, day_of_week, start_time, end_time FROM schedule_weekly ORDER BY day_of_week, start_time'
-    )
-    const exceptions = await pool.query(
-      'SELECT id, exception_date, start_time, end_time, is_available, reason FROM schedule_exceptions ORDER BY exception_date DESC'
-    )
-    return NextResponse.json({ weekly: weekly.rows, exceptions: exceptions.rows })
+    const weeklyResult = await db.select({
+      id: scheduleWeekly.id,
+      dayOfWeek: scheduleWeekly.dayOfWeek,
+      startTime: scheduleWeekly.startTime,
+      endTime: scheduleWeekly.endTime,
+    })
+      .from(scheduleWeekly)
+      .orderBy(scheduleWeekly.dayOfWeek, scheduleWeekly.startTime)
+
+    const exceptionsResult = await db.select({
+      id: scheduleExceptions.id,
+      exception_date: scheduleExceptions.exceptionDate,
+      start_time: scheduleExceptions.startTime,
+      end_time: scheduleExceptions.endTime,
+      is_available: scheduleExceptions.isAvailable,
+      reason: scheduleExceptions.reason,
+    })
+      .from(scheduleExceptions)
+      .orderBy(sql`exception_date DESC`)
+
+    return NextResponse.json({ weekly: weeklyResult, exceptions: exceptionsResult })
   } catch (error) {
     console.error('Error fetching schedule:', error)
     return NextResponse.json({ error: 'Error al cargar horarios' }, { status: 500 })
@@ -30,32 +46,29 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Formato inválido' }, { status: 400 })
     }
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      await client.query('DELETE FROM schedule_weekly')
+    await db.transaction(async (tx) => {
+      await tx.delete(scheduleWeekly)
 
       for (const entry of weekly) {
         if (entry.day_of_week === undefined || !entry.start_time || !entry.end_time) continue
-        await client.query(
-          'INSERT INTO schedule_weekly (day_of_week, start_time, end_time) VALUES ($1, $2, $3)',
-          [entry.day_of_week, entry.start_time, entry.end_time]
-        )
+        await tx.insert(scheduleWeekly).values({
+          dayOfWeek: entry.day_of_week,
+          startTime: entry.start_time,
+          endTime: entry.end_time,
+        })
       }
+    })
 
-      await client.query('COMMIT')
-    } catch {
-      await client.query('ROLLBACK')
-      throw new Error('Error al guardar horario')
-    } finally {
-      client.release()
-    }
+    const result = await db.select({
+      id: scheduleWeekly.id,
+      dayOfWeek: scheduleWeekly.dayOfWeek,
+      startTime: scheduleWeekly.startTime,
+      endTime: scheduleWeekly.endTime,
+    })
+      .from(scheduleWeekly)
+      .orderBy(scheduleWeekly.dayOfWeek, scheduleWeekly.startTime)
 
-    const { rows } = await pool.query(
-      'SELECT id, day_of_week, start_time, end_time FROM schedule_weekly ORDER BY day_of_week, start_time'
-    )
-
-    return NextResponse.json({ weekly: rows })
+    return NextResponse.json({ weekly: result })
   } catch (error) {
     console.error('Error saving schedule:', error)
     return NextResponse.json({ error: 'Error al guardar horario' }, { status: 500 })

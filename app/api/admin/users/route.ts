@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
 import { hash } from 'bcryptjs'
+import { users } from '@/lib/db/schema'
+import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,13 +13,18 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const result = await pool.query(
-    `SELECT id, name, email, phone, role, created_at
-     FROM users
-     ORDER BY created_at DESC`
-  )
+  const result = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    phone: users.phone,
+    role: users.role,
+    createdAt: users.createdAt,
+  })
+    .from(users)
+    .orderBy(sql`created_at DESC`)
 
-  return NextResponse.json({ users: result.rows })
+  return NextResponse.json({ users: result })
 }
 
 export async function POST(req: Request) {
@@ -33,20 +40,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nombre, email y contraseña son obligatorios' }, { status: 400 })
     }
 
-    const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email])
-    if (exists.rows.length > 0) {
+    const exists = await db.select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+
+    if (exists.length > 0) {
       return NextResponse.json({ error: 'Ya existe un usuario con ese email' }, { status: 409 })
     }
 
     const hashed = await hash(password, 12)
-    const result = await pool.query(
-      `INSERT INTO users (name, email, phone, password, role)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, phone, role, created_at`,
-      [name, email, phone || '', hashed, role || 'user']
-    )
+    const result = await db.insert(users).values({
+      name,
+      email,
+      phone: phone || '',
+      password: hashed,
+      role: role || 'user',
+    }).returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
 
-    return NextResponse.json({ user: result.rows[0] }, { status: 201 })
+    return NextResponse.json({ user: result[0] }, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json({ error: 'Error al crear el usuario' }, { status: 500 })

@@ -11,29 +11,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
+        const { db } = await import('@/lib/db')
+        const { users } = await import('@/lib/db/schema')
+        const { eq } = await import('drizzle-orm')
         const { verifyPassword } = await import('@/lib/auth')
-        const pool = (await import('@/lib/db')).default
 
         const email = credentials.email as string
         const password = credentials.password as string
 
-        const result = await pool.query(
-          'SELECT id, name, email, phone, role, password FROM users WHERE email = $1',
-          [email]
-        )
+        const [user] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            phone: users.phone,
+            role: users.role,
+            password: users.password,
+          })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1)
 
-        if (result.rows.length === 0) return null
+        if (!user) return null
+        if (!user.password) return null
 
-        const user = result.rows[0]
         const valid = await verifyPassword(password, user.password)
-
         if (!valid) return null
 
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role as 'user' | 'admin',
           image: null,
         }
       },
@@ -43,19 +52,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ account, profile }) {
       if (account?.provider === 'google') {
         try {
-          const pool = (await import('@/lib/db')).default
+          const { db } = await import('@/lib/db')
+          const { users } = await import('@/lib/db/schema')
+          const { eq } = await import('drizzle-orm')
 
           const email = profile?.email
           if (!email) return false
 
-          const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email])
-          if (exists.rows.length === 0) {
-            await pool.query(
-              `INSERT INTO users (name, email, phone, password, role)
-               VALUES ($1, $2, '', '', 'user')
-               ON CONFLICT (email) DO NOTHING`,
-              [profile?.name || email.split('@')[0], email]
-            )
+          const [existing] = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1)
+
+          if (!existing) {
+            await db.insert(users).values({
+              name: profile?.name || email.split('@')[0],
+              email,
+            })
           }
         } catch (e) {
           console.error('Google signIn DB error:', e)
@@ -64,43 +78,63 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true
     },
     async jwt({ token, user, account, trigger }) {
-      const pool = (await import('@/lib/db')).default
-
       if (trigger === 'update' && token.id) {
-        const dbUser = await pool.query(
-          'SELECT image FROM users WHERE id = $1',
-          [token.id]
-        )
-        if (dbUser.rows.length > 0) {
-          token.image = dbUser.rows[0].image
+        const { db } = await import('@/lib/db')
+        const { users } = await import('@/lib/db/schema')
+        const { eq } = await import('drizzle-orm')
+
+        const [dbUser] = await db
+          .select({ image: users.image })
+          .from(users)
+          .where(eq(users.id, token.id as string))
+          .limit(1)
+
+        if (dbUser) {
+          token.image = dbUser.image
         }
       }
 
       if (account?.provider === 'google') {
         try {
-          const dbUser = await pool.query(
-            'SELECT id, role, image FROM users WHERE email = $1',
-            [token.email]
-          )
-          if (dbUser.rows.length > 0) {
-            token.id = dbUser.rows[0].id
-            token.role = dbUser.rows[0].role
-            token.image = dbUser.rows[0].image
+          const { db } = await import('@/lib/db')
+          const { users } = await import('@/lib/db/schema')
+          const { eq } = await import('drizzle-orm')
+
+          const [dbUser] = await db
+            .select({
+              id: users.id,
+              role: users.role,
+              image: users.image,
+            })
+            .from(users)
+            .where(eq(users.email, token.email!))
+            .limit(1)
+
+          if (dbUser) {
+            token.id = dbUser.id
+            token.role = dbUser.role as 'user' | 'admin'
+            token.image = dbUser.image
           }
         } catch (e) {
           console.error('jwt google lookup error:', e)
           token.role = token.role || 'user'
         }
       } else if (user) {
+        const { db } = await import('@/lib/db')
+        const { users } = await import('@/lib/db/schema')
+        const { eq } = await import('drizzle-orm')
+
         token.id = user.id
         token.role = user.role || 'user'
         try {
-          const dbUser = await pool.query(
-            'SELECT image FROM users WHERE id = $1',
-            [user.id]
-          )
-          if (dbUser.rows.length > 0) {
-            token.image = dbUser.rows[0].image
+          const [dbUser] = await db
+            .select({ image: users.image })
+            .from(users)
+            .where(eq(users.id, user.id!))
+            .limit(1)
+
+          if (dbUser) {
+            token.image = dbUser.image
           }
         } catch (e) {
           console.error('jwt image lookup error:', e)

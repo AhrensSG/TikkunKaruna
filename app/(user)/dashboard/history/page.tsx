@@ -219,9 +219,9 @@ export default function HistoryPage() {
                 <div className="space-y-2">
                   {selected.sessions.map((s) => (
                     <div key={s.id} className="bg-purple-50 rounded-lg p-3 text-sm">
-                      <span className="font-medium text-purple-800">Sesión {s.session_number}</span>
-                      <span className="text-gray-600 ml-2">
-                        {new Date(s.start_time).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  <span className="font-medium text-purple-800">Sesión {s.session_number}</span>
+                  <span className="text-gray-600 ml-2">
+                    {new Date(s.start_time).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
                   ))}

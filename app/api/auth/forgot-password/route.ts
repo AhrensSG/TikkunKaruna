@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
+import { users, resetTokens } from "@/lib/db/schema"
 import { sendEmail } from "@/emails"
+import { eq } from "drizzle-orm"
 
 export async function POST(req: Request) {
   try {
@@ -11,19 +13,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email requerido" }, { status: 400 })
     }
 
-    const user = await pool.query("SELECT id, name FROM users WHERE email = $1", [email])
+    const [user] = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
 
     const token = crypto.randomBytes(32).toString("hex")
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
 
-    await pool.query("DELETE FROM reset_tokens WHERE email = $1", [email])
-    await pool.query(
-      "INSERT INTO reset_tokens (email, token, expires_at) VALUES ($1, $2, $3)",
-      [email, hashedToken, expiresAt]
-    )
+    await db.delete(resetTokens).where(eq(resetTokens.email, email))
+    await db.insert(resetTokens).values({ email, token: hashedToken, expiresAt })
 
-    if (user.rows.length > 0) {
+    if (user) {
       const resetUrl = `${process.env.NEXT_PUBLIC_API_URL}/reset-password?token=${token}`
       await sendEmail(
         email,
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
         `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
             <h2 style="color:#4a1a5e;">Recupera tu contraseña</h2>
-            <p>Hola <strong>${user.rows[0].name}</strong>,</p>
+            <p>Hola <strong>${user.name}</strong>,</p>
             <p>Recibimos una solicitud para restablecer tu contraseña.</p>
             <a href="${resetUrl}"
                style="display:inline-block;background:#6b21a8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin:16px 0;">

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
+import { users } from '@/lib/db/schema'
 import { hashPassword } from '@/lib/auth'
 import { notifyAdmin, adminNewUserHtml } from '@/emails'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { eq } from 'drizzle-orm'
 
 export async function POST(req: Request) {
   try {
@@ -28,8 +30,13 @@ export async function POST(req: Request) {
       )
     }
 
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email])
-    if (existing.rows.length > 0) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
+
+    if (existing) {
       return NextResponse.json(
         { error: 'Ya existe una cuenta con ese correo electrónico' },
         { status: 409 }
@@ -37,14 +44,11 @@ export async function POST(req: Request) {
     }
 
     const hashed = await hashPassword(password)
-    const result = await pool.query(
-      `INSERT INTO users (name, email, phone, password, role)
-       VALUES ($1, $2, $3, $4, 'user')
-       RETURNING id, name, email, phone, role, created_at`,
-      [name, email, phone || '', hashed]
-    )
+    const [user] = await db
+      .insert(users)
+      .values({ name, email, phone: phone || '', password: hashed })
+      .returning({ id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role, createdAt: users.createdAt })
 
-    const user = result.rows[0]
     notifyAdmin(
       `👤 Nuevo registro: ${user.name}`,
       adminNewUserHtml(user.name, user.email)

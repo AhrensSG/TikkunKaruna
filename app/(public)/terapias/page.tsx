@@ -134,7 +134,7 @@ export default async function TerapiasPage() {
                       {duration}
                     </div>
                     <span className="text-purple-200">·</span>
-                    <span className="font-heading text-lg text-gold-600 font-medium">{price}</span>
+                    <span className="text-lg text-purple-700 font-semibold">{price}</span>
                   </div>
 
                   {/* Title */}

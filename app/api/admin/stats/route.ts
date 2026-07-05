@@ -1,56 +1,55 @@
 import { NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
 import { requireAdmin } from "@/lib/auth-helpers"
+import { sql } from "drizzle-orm"
 
 export async function GET() {
   const unauthorized = await requireAdmin()
   if (unauthorized) return unauthorized
 
   try {
-    const { rows: totals } = await pool.query(
-      `SELECT
-         COUNT(*)::int AS total_payments,
-         COALESCE(SUM(amount_cents), 0) AS total_revenue_cents,
-         COALESCE(SUM(amount_cents) FILTER (WHERE status = 'refunded'), 0) AS refunded_cents
-       FROM payments
-       WHERE status IN ('succeeded', 'refunded')`
-    )
+    const totalsResult = await db.execute(sql`
+      SELECT
+        COUNT(*)::int AS total_payments,
+        COALESCE(SUM(amount_cents), 0) AS total_revenue_cents,
+        COALESCE(SUM(amount_cents) FILTER (WHERE status = 'refunded'), 0) AS refunded_cents
+      FROM payments
+      WHERE status IN ('succeeded', 'refunded')
+    `)
 
     const now = new Date()
     const year = now.getFullYear()
     const month = now.getMonth() + 1
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
 
-    const { rows: monthData } = await pool.query(
-      `SELECT
-         COUNT(*)::int AS month_count,
-         COALESCE(SUM(amount_cents), 0) AS month_revenue_cents
-       FROM payments
-       WHERE status = 'succeeded'
-         AND created_at >= $1::timestamptz`,
-      [monthStart]
-    )
+    const monthResult = await db.execute(sql`
+      SELECT
+        COUNT(*)::int AS month_count,
+        COALESCE(SUM(amount_cents), 0) AS month_revenue_cents
+      FROM payments
+      WHERE status = 'succeeded'
+        AND created_at >= ${monthStart}::timestamptz
+    `)
 
-    const { rows: monthly } = await pool.query(
-      `SELECT
-         DATE_TRUNC('month', created_at)::date AS month,
-         COUNT(*)::int AS count,
-         COALESCE(SUM(amount_cents), 0) AS revenue_cents
-       FROM payments
-       WHERE status = 'succeeded'
-         AND created_at >= $1::timestamptz
-       GROUP BY month
-       ORDER BY month DESC
-       LIMIT 12`,
-      [`${year - 1}-${String(month).padStart(2, '0')}-01`]
-    )
+    const monthlyResult = await db.execute(sql`
+      SELECT
+        DATE_TRUNC('month', created_at)::date AS month,
+        COUNT(*)::int AS count,
+        COALESCE(SUM(amount_cents), 0) AS revenue_cents
+      FROM payments
+      WHERE status = 'succeeded'
+        AND created_at >= ${`${year - 1}-${String(month).padStart(2, '0')}-01`}::timestamptz
+      GROUP BY month
+      ORDER BY month DESC
+      LIMIT 12
+    `)
 
-    const { rows: invoiceCount } = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM invoices`
-    )
+    const invoiceResult = await db.execute(sql`
+      SELECT COUNT(*)::int AS count FROM invoices
+    `)
 
-    const total = totals[0]
-    const monthInfo = monthData[0]
+    const total = totalsResult.rows[0]
+    const monthInfo = monthResult.rows[0]
 
     return NextResponse.json({
       totalRevenueCents: Number(total.total_revenue_cents),
@@ -59,8 +58,8 @@ export async function GET() {
       totalPayments: total.total_payments,
       monthRevenueCents: Number(monthInfo.month_revenue_cents),
       monthCount: monthInfo.month_count,
-      totalInvoices: invoiceCount[0].count,
-      monthly,
+      totalInvoices: invoiceResult.rows[0].count,
+      monthly: monthlyResult.rows,
     })
   } catch (error) {
     console.error("Error fetching stats:", error)

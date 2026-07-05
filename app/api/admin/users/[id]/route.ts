@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,16 +13,22 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 
   const { id } = await params
-  const result = await pool.query(
-    'SELECT id, name, email, phone, role, created_at FROM users WHERE id = $1',
-    [id]
-  )
+  const result = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    phone: users.phone,
+    role: users.role,
+    createdAt: users.createdAt,
+  })
+    .from(users)
+    .where(eq(users.id, id))
 
-  if (result.rows.length === 0) {
+  if (result.length === 0) {
     return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
   }
 
-  return NextResponse.json({ user: result.rows[0] })
+  return NextResponse.json({ user: result[0] })
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -41,17 +49,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
     }
 
-    const result = await pool.query(
-      `UPDATE users SET name = $1, phone = $2, role = $3 WHERE id = $4
-       RETURNING id, name, email, phone, role, created_at`,
-      [name, phone || '', role, id]
-    )
+    const result = await db.update(users)
+      .set({ name, phone: phone || '', role })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        role: users.role,
+        createdAt: users.createdAt,
+      })
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ user: result.rows[0] })
+    return NextResponse.json({ user: result[0] })
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json({ error: 'Error al actualizar el usuario' }, { status: 500 })
@@ -71,12 +85,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 })
     }
 
-    const result = await pool.query(
-      'DELETE FROM users WHERE id = $1 RETURNING id',
-      [id]
-    )
+    const result = await db.delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id })
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 

@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 interface CalendarProps {
   year: number
@@ -23,7 +23,7 @@ export default function Calendar({ year, month, selectedDate, onSelect, onPrevMo
   const days = useMemo(() => {
     const first = new Date(year, month - 1, 1)
     const last = new Date(year, month, 0)
-    const startPad = first.getDay() // 0 = Sunday
+    const startPad = (first.getDay() + 6) % 7 // 0 = Monday
     const total = last.getDate()
     return { startPad, total }
   }, [year, month])

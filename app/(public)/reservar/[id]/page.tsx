@@ -244,7 +244,7 @@ export default function ReservarPage() {
                       : `${therapy.duration_minutes} min`}
                   </div>
                   <span className="text-purple-200">|</span>
-                  <span className="font-heading text-xl text-gold-600 font-medium">
+                  <span className="text-xl text-purple-700 font-semibold">
                     {therapy.price_cents / 100} €
                   </span>
                 </div>

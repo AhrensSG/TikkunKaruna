@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { scheduleExceptions } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -8,7 +10,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   try {
     const { id } = await params
-    await pool.query('DELETE FROM schedule_exceptions WHERE id = $1', [id])
+    await db.delete(scheduleExceptions).where(eq(scheduleExceptions.id, id))
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting exception:', error)

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { db } from '@/lib/db'
 import { sendEmail } from '@/emails'
 import { reminderHtml } from '@/emails/templates'
 import { sendWhatsApp } from '@/lib/whatsapp'
+import { sql } from 'drizzle-orm'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -14,30 +15,33 @@ export async function GET(req: Request) {
   const windowStart = new Date(now.getTime() + 50 * 60000).toISOString()
   const windowEnd = new Date(now.getTime() + 70 * 60000).toISOString()
 
-  const { rows: bookings } = await pool.query(
-    `SELECT b.id, b.start_time, b.therapy_id,
-            u.email, u.phone, u.name as user_name,
-            t.name as therapy_name, t.description as therapy_description,
-            t.duration_minutes
-     FROM bookings b
-     JOIN users u ON u.id = b.user_id
-     JOIN therapies t ON t.id = b.therapy_id
-     WHERE b.status = 'confirmed'
-       AND b.start_time BETWEEN $1 AND $2
-       AND b.reminder_sent_at IS NULL`,
-    [windowStart, windowEnd]
-  )
+  const result = await db.execute(sql`
+    SELECT b.id, b.start_time, b.therapy_id,
+           u.email, u.phone, u.name as user_name,
+           t.name as therapy_name, t.description as therapy_description,
+           t.duration_minutes
+    FROM bookings b
+    JOIN users u ON u.id = b.user_id
+    JOIN therapies t ON t.id = b.therapy_id
+    WHERE b.status = 'confirmed'
+      AND b.start_time BETWEEN ${windowStart} AND ${windowEnd}
+      AND b.reminder_sent_at IS NULL
+  `)
 
+  const bookings = result.rows as {
+    id: string; start_time: string; therapy_id: string;
+    email: string; phone: string | null; user_name: string;
+    therapy_name: string; therapy_description: string | null; duration_minutes: number;
+  }[]
   if (bookings.length === 0) {
     return NextResponse.json({ sent: 0 })
   }
 
   let sent = 0
   for (const booking of bookings) {
-    const { rows: reqs } = await pool.query(
-      `SELECT description FROM therapy_requirements WHERE therapy_id = $1`,
-      [booking.therapy_id]
-    )
+    const reqsResult = await db.execute(sql`
+      SELECT description FROM therapy_requirements WHERE therapy_id = ${booking.therapy_id} ORDER BY sort_order
+    `)
 
     const dateStr = new Date(booking.start_time).toLocaleDateString("es-ES", {
       day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -53,7 +57,7 @@ export async function GET(req: Request) {
         therapyDescription: booking.therapy_description || '',
         durationMinutes: booking.duration_minutes,
         dateStr,
-        requirements: reqs.map((r: { description: string }) => r.description),
+        requirements: (reqsResult.rows as { description: string }[]).map((r) => r.description),
       })
     )
 
@@ -64,10 +68,9 @@ export async function GET(req: Request) {
       )
     }
 
-    await pool.query(
-      `UPDATE bookings SET reminder_sent_at = NOW() WHERE id = $1`,
-      [booking.id]
-    )
+    await db.execute(sql`
+      UPDATE bookings SET reminder_sent_at = NOW() WHERE id = ${booking.id}
+    `)
     sent++
   }
 
