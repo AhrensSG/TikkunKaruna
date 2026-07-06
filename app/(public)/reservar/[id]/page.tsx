@@ -473,6 +473,13 @@ export default function ReservarPage() {
                   </div>
                 </div>
 
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 leading-relaxed mb-4">
+                  <p className="flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0 text-amber-500">ℹ</span>
+                    Estas sesiones no sustituyen procesos médicos ni la atención de profesionales de la salud; se trabaja exclusivamente en el campo energético de las personas como complemento al bienestar personal.
+                  </p>
+                </div>
+
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 mb-4">
                     {error}
