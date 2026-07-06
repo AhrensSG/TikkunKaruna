@@ -168,6 +168,11 @@ export default async function TerapiasPage() {
                     </div>
                   )}
 
+                  {/* Disclaimer */}
+                  <p className="mt-4 mb-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+                    Estas sesiones no sustituyen procesos médicos ni la atención de profesionales de la salud; se trabaja exclusivamente en el campo energético de las personas como complemento al bienestar personal.
+                  </p>
+
                   {/* CTA */}
                   <Link
                     href={`/reservar/${id}`}
