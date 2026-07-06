@@ -70,7 +70,7 @@ export default function ReservarPage() {
     if (!therapy?.is_pack || packSessionIndex === 0) return null
     const prev = packSessions[packSessionIndex - 1]
     if (!prev.date || !prev.time) return null
-    return new Date(`${prev.date}T${prev.time}:00`).toISOString()
+    return `${prev.date}T${prev.time}:00`
   }, [packSessions, packSessionIndex, therapy])
 
   useEffect(() => {
