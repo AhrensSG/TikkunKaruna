@@ -23,7 +23,7 @@ export async function GET() {
       amount_cents: payments.amountCents,
       payment_status: payments.status,
       admin_notes: bookingsTable.adminNotes,
-      requirements: sql`COALESCE(json_agg(${therapyRequirements.description}) FILTER (WHERE ${therapyRequirements.description} IS NOT NULL), '[]')`,
+      requirements: sql`COALESCE(json_agg(${therapyRequirements.description} ORDER BY ${therapyRequirements.sortOrder}) FILTER (WHERE ${therapyRequirements.description} IS NOT NULL), '[]')`,
     })
     .from(bookingsTable)
     .innerJoin(therapies, eq(bookingsTable.therapyId, therapies.id))
