@@ -38,6 +38,13 @@ export async function confirmBookingFromSession(stripeSession: StripeSession) {
   const amount = stripeSession.amount_total ?? 0
   const currency = stripeSession.currency || 'eur'
 
+  const existingPayment = await db.execute(sql`
+    SELECT 1 FROM payments WHERE stripe_payment_id = ${stripeSession.id}
+  `)
+  const paymentExists = existingPayment.rows.length > 0
+
+  const invoiceNumber = await nextInvoiceNumber()
+
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`
       UPDATE bookings SET status = 'confirmed', stripe_session_id = ${stripeSession.id}, country = ${country} WHERE id = ${bookingId}
@@ -47,17 +54,16 @@ export async function confirmBookingFromSession(stripeSession: StripeSession) {
       UPDATE booking_sessions SET status = 'confirmed' WHERE booking_id = ${bookingId}
     `)
 
-    await tx.execute(sql`
-      INSERT INTO payments (booking_id, user_id, amount_cents, currency, status, stripe_payment_id)
-      VALUES (${bookingId}, ${booking.user_id}, ${amount}, ${currency}, 'succeeded', ${stripeSession.id})
-      ON CONFLICT (stripe_payment_id) DO NOTHING
-    `)
-
-    const invoiceNumber = await nextInvoiceNumber()
-    await tx.execute(sql`
-      INSERT INTO invoices (booking_id, user_id, invoice_number, amount_cents)
-      VALUES (${bookingId}, ${booking.user_id}, ${invoiceNumber}, ${amount})
-    `)
+    if (!paymentExists) {
+      await tx.execute(sql`
+        INSERT INTO payments (booking_id, user_id, amount_cents, currency, status, stripe_payment_id)
+        VALUES (${bookingId}, ${booking.user_id}, ${amount}, ${currency}, 'succeeded', ${stripeSession.id})
+      `)
+      await tx.execute(sql`
+        INSERT INTO invoices (booking_id, user_id, invoice_number, amount_cents)
+        VALUES (${bookingId}, ${booking.user_id}, ${invoiceNumber}, ${amount})
+      `)
+    }
 
     const userResult = await tx.execute(sql`
       SELECT u.email, u.phone, u.name as user_name, t.id as therapy_id, t.name as therapy_name,
@@ -98,29 +104,31 @@ export async function confirmBookingFromSession(stripeSession: StripeSession) {
   })
 
   if (!result) return
-  const { info, dateStr, invoiceNumber, requirements } = result
+  const { info, dateStr, invoiceNumber: invNum, requirements } = result
 
-  await sendEmail(
-    info.email,
-    `✅ Reserva confirmada — ${info.therapy_name}`,
-    bookingConfirmationHtml({
-      userName: info.user_name,
-      userEmail: info.email,
-      therapyName: info.therapy_name,
-      therapyDescription: info.therapy_description || '',
-      durationMinutes: info.is_pack && info.session_duration_minutes ? info.session_duration_minutes : info.duration_minutes,
-      dateStr,
-      invoiceNumber,
-      requirements,
-    })
-  )
+  if (!paymentExists) {
+    await sendEmail(
+      info.email,
+      `✅ Reserva confirmada — ${info.therapy_name}`,
+      bookingConfirmationHtml({
+        userName: info.user_name,
+        userEmail: info.email,
+        therapyName: info.therapy_name,
+        therapyDescription: info.therapy_description || '',
+        durationMinutes: info.is_pack && info.session_duration_minutes ? info.session_duration_minutes : info.duration_minutes,
+        dateStr,
+        invoiceNumber: invNum,
+        requirements,
+      })
+    )
 
-  const waMsg = `✅ *Reserva confirmada — ${info.therapy_name}*\n\nHola ${info.user_name}, tu reserva ha sido confirmada.\n\n📅 ${dateStr.replace(/\n/g, '\n')}\n📄 Factura: ${invoiceNumber}\n\nGracias por confiar en TikkunKaruna 💜`
-  if (info.phone) sendWhatsApp(info.phone, waMsg)
-  notifyAdminWhatsApp(`📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}\n📅 ${dateStr.replace(/\n/g, '\n')}`)
+    const waMsg = `✅ *Reserva confirmada — ${info.therapy_name}*\n\nHola ${info.user_name}, tu reserva ha sido confirmada.\n\n📅 ${dateStr.replace(/\n/g, '\n')}\n📄 Factura: ${invNum}\n\nGracias por confiar en TikkunKaruna 💜`
+    if (info.phone) sendWhatsApp(info.phone, waMsg)
+    notifyAdminWhatsApp(`📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}\n📅 ${dateStr.replace(/\n/g, '\n')}`)
 
-  notifyAdmin(
-    `📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}`,
-    adminNewBookingHtml(info.user_name, info.email, info.therapy_name, dateStr)
-  )
+    notifyAdmin(
+      `📅 Nueva reserva: ${info.user_name} — ${info.therapy_name}`,
+      adminNewBookingHtml(info.user_name, info.email, info.therapy_name, dateStr)
+    )
+  }
 }

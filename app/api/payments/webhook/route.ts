@@ -32,7 +32,12 @@ export async function POST(req: Request) {
 
   if (event.type === 'checkout.session.completed') {
     const stripeSession = event.data.object as StripeSession
-    await confirmBookingFromSession(stripeSession)
+    try {
+      await confirmBookingFromSession(stripeSession)
+    } catch (err) {
+      console.error('Error en webhook checkout.session.completed:', err)
+      return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 })
+    }
   }
 
   if (event.type === 'checkout.session.expired') {

@@ -27,7 +27,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Error: reserva no encontrada' }, { status: 404 })
   }
 
-  await confirmBookingFromSession(stripeSession as any)
+  try {
+    await confirmBookingFromSession(stripeSession as any)
+  } catch (err) {
+    console.error('Error confirmando reserva desde session API:', err)
+  }
 
   const result = await db.execute(sql`
     SELECT b.id, b.status, t.name AS therapy_name, t.description AS therapy_description,
