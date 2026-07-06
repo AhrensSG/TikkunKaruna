@@ -8,6 +8,8 @@ import {
 import pool from "@/lib/db";
 import { formatDuration } from "@/lib/format";
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: "Terapias | TikkunKaruna",
   description:
@@ -35,7 +37,7 @@ export default async function TerapiasPage() {
     const result = await pool.query(
       `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
               t.is_pack, t.session_count, t.session_duration_minutes,
-              COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
+              COALESCE(json_agg(tr.description ORDER BY tr.sort_order) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
        FROM therapies t
        LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
         WHERE t.is_active = true AND t.deleted_at IS NULL
@@ -46,7 +48,7 @@ export default async function TerapiasPage() {
   } catch {
     const result = await pool.query(
       `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
-              COALESCE(json_agg(tr.description) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
+              COALESCE(json_agg(tr.description ORDER BY tr.sort_order) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
        FROM therapies t
        LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
         WHERE t.is_active = true
