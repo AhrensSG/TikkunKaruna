@@ -51,15 +51,26 @@ export async function GET(req: Request) {
     const dayStart = toUtc(date, '00:00:00', tzOffset)
     const dayEnd = toUtc(date, '23:59:59', tzOffset)
 
-    const [exception] = await db
-      .select({ isAvailable: scheduleExceptions.isAvailable })
+    const exceptions = await db
+      .select({
+        isAvailable: scheduleExceptions.isAvailable,
+        startTime: scheduleExceptions.startTime,
+        endTime: scheduleExceptions.endTime,
+      })
       .from(scheduleExceptions)
       .where(eq(scheduleExceptions.exceptionDate, date))
-      .limit(1)
 
-    if (exception && !exception.isAvailable) {
+    const fullDayBlocked = exceptions.some((ex) => !ex.isAvailable && !ex.startTime && !ex.endTime)
+    if (fullDayBlocked) {
       return NextResponse.json({ date, slots: [] })
     }
+
+    const blockedRanges = exceptions
+      .filter((ex) => !ex.isAvailable && ex.startTime && ex.endTime)
+      .map((ex) => ({
+        startMinutes: (() => { const [h, m] = (ex.startTime!).split(':').map(Number); return h * 60 + m })(),
+        endMinutes: (() => { const [h, m] = (ex.endTime!).split(':').map(Number); return h * 60 + m })(),
+      }))
 
     const ranges = await db
       .select({ startTime: scheduleWeekly.startTime, endTime: scheduleWeekly.endTime })
@@ -110,6 +121,11 @@ export async function GET(req: Request) {
     const available = allSlots.filter((slot) => {
       const slotStart = toUtc(date, slot + ':00', tzOffset)
       const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60_000)
+
+      const [sh, sm] = slot.split(':').map(Number)
+      const slotMinutes = sh * 60 + sm
+      const slotEndMinutes = slotMinutes + durationMinutes
+      if (blockedRanges.some((r) => slotMinutes < r.endMinutes && slotEndMinutes > r.startMinutes)) return false
 
       const hoursFromNow = (slotStart.getTime() - now.getTime()) / 3_600_000
       if (hoursFromNow < MIN_HOURS_FROM_NOW) return false
