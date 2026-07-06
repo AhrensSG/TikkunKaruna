@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
 import { db } from '@/lib/db'
 import { auth } from '@/lib/auth.config'
-import { checkOverlap } from '@/lib/overlap'
+import { checkOverlap, checkBlockedTime } from '@/lib/overlap'
 import { getEffectiveDuration } from '@/lib/therapy'
 import { MIN_HOURS_BETWEEN_SESSIONS, MIN_HOURS_FROM_NOW, STRIPE_CURRENCY } from '@/lib/constants'
 import { sql } from 'drizzle-orm'
@@ -88,9 +88,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: overlapError }, { status: 409 })
     }
 
-    const firstSession = sessions[0]
-    const bookingStart = new Date(firstSession.start_time)
-    const bookingEnd = new Date(bookingStart.getTime() + perSessionDuration * 60_000)
+    for (let i = 0; i < sessions.length; i++) {
+      const s = sessions[i]
+      const blockedError = await checkBlockedTime(new Date(s.start_time), perSessionDuration)
+      if (blockedError) {
+        return NextResponse.json({ error: blockedError }, { status: 409 })
+      }
+    }
+
+    const allStarts = sessions.map((s) => new Date(s.start_time).getTime())
+    const bookingStart = new Date(Math.min(...allStarts))
+    const bookingEnd = new Date(Math.max(...allStarts) + perSessionDuration * 60_000)
 
     const result = await db.transaction(async (tx) => {
       await tx.execute(sql`

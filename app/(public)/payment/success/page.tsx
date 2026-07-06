@@ -32,23 +32,39 @@ function PaymentSuccessContent() {
   useEffect(() => {
     if (!sessionId) return
 
+    let cancelled = false
     const params = new URLSearchParams({ session_id: sessionId })
     if (bookingId) params.set("booking_id", bookingId)
 
-    fetch(`/api/payments/session?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const attempt = async (retries: number) => {
+      try {
+        const res = await fetch(`/api/payments/session?${params}`)
+        const data = await res.json()
+        if (cancelled) return
         if (data.booking) {
           setBooking(data.booking)
-        } else {
-          setError(data.error || "Error al obtener la reserva")
+          setLoading(false)
+          return
         }
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 1500))
+          return attempt(retries - 1)
+        }
+        setError(data.error || "Error al obtener la reserva")
         setLoading(false)
-      })
-      .catch(() => {
+      } catch {
+        if (cancelled) return
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 1500))
+          return attempt(retries - 1)
+        }
         setError("Error de conexión")
         setLoading(false)
-      })
+      }
+    }
+    attempt(3)
+
+    return () => { cancelled = true }
   }, [sessionId, bookingId])
 
 
