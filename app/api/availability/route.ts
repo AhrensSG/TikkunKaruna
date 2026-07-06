@@ -6,12 +6,20 @@ import { getEffectiveDuration } from '@/lib/therapy'
 import { BUFFER_MINUTES, MIN_HOURS_FROM_NOW, DEFAULT_DURATION_MINUTES } from '@/lib/constants'
 import { eq, and, sql } from 'drizzle-orm'
 
+function toUtc(dateStr: string, timeStr: string, tzOffsetMinutes: number): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const [h, min] = timeStr.split(':').map(Number)
+  // Convert local time to UTC using client's timezone offset
+  return new Date(Date.UTC(y, m - 1, d, h, min) + tzOffsetMinutes * 60_000)
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const date = searchParams.get("date")
     const therapyId = searchParams.get("therapyId")
     const after = searchParams.get("after")
+    const tzOffset = parseInt(searchParams.get("tzOffset") || '0')
 
     if (!date) {
       return NextResponse.json({ error: "Fecha requerida" }, { status: 400 })
@@ -40,8 +48,8 @@ export async function GET(req: Request) {
     }
 
     const dayOfWeek = dayDate.getDay()
-    const dayStart = new Date(`${date}T00:00:00`)
-    const dayEnd = new Date(`${date}T23:59:59`)
+    const dayStart = toUtc(date, '00:00:00', tzOffset)
+    const dayEnd = toUtc(date, '23:59:59', tzOffset)
 
     const [exception] = await db
       .select({ isAvailable: scheduleExceptions.isAvailable })
@@ -100,7 +108,7 @@ export async function GET(req: Request) {
     const minStart = after ? new Date(new Date(after).getTime() + MIN_HOURS_FROM_NOW * 3_600_000) : null
 
     const available = allSlots.filter((slot) => {
-      const slotStart = new Date(`${date}T${slot}:00`)
+      const slotStart = toUtc(date, slot + ':00', tzOffset)
       const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60_000)
 
       const hoursFromNow = (slotStart.getTime() - now.getTime()) / 3_600_000

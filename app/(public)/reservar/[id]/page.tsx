@@ -70,15 +70,16 @@ export default function ReservarPage() {
     if (!therapy?.is_pack || packSessionIndex === 0) return null
     const prev = packSessions[packSessionIndex - 1]
     if (!prev.date || !prev.time) return null
-    return `${prev.date}T${prev.time}:00`
+    return new Date(`${prev.date}T${prev.time}:00`).toISOString()
   }, [packSessions, packSessionIndex, therapy])
+  const tzOffset = useMemo(() => String(new Date().getTimezoneOffset()), [])
 
   useEffect(() => {
     if (!selectedDate || !id) return
     const load = async () => {
       setSelectedTime(null)
       setSlotsLoading(true)
-      const params = new URLSearchParams({ date: selectedDate, therapyId: id })
+      const params = new URLSearchParams({ date: selectedDate, therapyId: id, tzOffset })
       if (prevSessionStart) params.set("after", prevSessionStart)
       try {
         const res = await fetch(`/api/availability?${params}`)
@@ -95,7 +96,7 @@ export default function ReservarPage() {
 
   useEffect(() => {
     if (!id) return
-    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: id })
+    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: id, tzOffset })
     if (prevSessionStart) params.set("after", prevSessionStart)
     fetch(`/api/availability/month?${params}`)
       .then((r) => r.json())

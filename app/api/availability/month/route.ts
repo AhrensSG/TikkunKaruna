@@ -7,6 +7,12 @@ import { BUFFER_MINUTES, MIN_HOURS_FROM_NOW, DEFAULT_DURATION_MINUTES } from '@/
 import { toDateStr } from '@/lib/date'
 import { eq, and, sql } from 'drizzle-orm'
 
+function toUtc(dateStr: string, timeStr: string, tzOffsetMinutes: number): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const [h, min] = timeStr.split(':').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, h, min) + tzOffsetMinutes * 60_000)
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -14,6 +20,7 @@ export async function GET(req: Request) {
     const month = parseInt(searchParams.get('month') || '')
     const therapyId = searchParams.get('therapyId')
     const after = searchParams.get('after')
+    const tzOffset = parseInt(searchParams.get('tzOffset') || '0')
 
     if (!year || !month || month < 1 || month > 12) {
       return NextResponse.json({ error: 'year y month requeridos' }, { status: 400 })
@@ -78,8 +85,8 @@ export async function GET(req: Request) {
 
       if (allSlots.length === 0) continue
 
-      const dayStart = new Date(`${dateStr}T00:00:00`)
-      const dayEnd = new Date(`${dateStr}T23:59:59`)
+      const dayStart = toUtc(dateStr, '00:00:00', tzOffset)
+      const dayEnd = toUtc(dateStr, '23:59:59', tzOffset)
 
       const occupied = await db
         .select({
@@ -115,7 +122,7 @@ export async function GET(req: Request) {
       const now = new Date()
 
       const available = allSlots.filter((slot) => {
-        const slotStart = new Date(`${dateStr}T${slot}:00`)
+        const slotStart = toUtc(dateStr, slot + ':00', tzOffset)
         const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60_000)
 
         const hoursFromNow = (slotStart.getTime() - now.getTime()) / 3_600_000
