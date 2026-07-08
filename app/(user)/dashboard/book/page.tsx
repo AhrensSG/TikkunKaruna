@@ -107,16 +107,17 @@ export default function BookPage() {
     if (!prev.date || !prev.time) return null
     return new Date(`${prev.date}T${prev.time}:00`).toISOString()
   }, [packSessions, packSessionIndex, therapy])
+  const tzOffset = useMemo(() => String(new Date().getTimezoneOffset()), [])
 
   useEffect(() => {
     if (!selectedTherapy) return
-    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: selectedTherapy })
+    const params = new URLSearchParams({ year: String(calYear), month: String(calMonth), therapyId: selectedTherapy, tzOffset })
     if (prevSessionStart) params.set("after", prevSessionStart)
     fetch(`/api/availability/month?${params}`)
       .then((r) => r.json())
       .then((data) => setAvailableDates(data.dates || []))
       .catch(() => setAvailableDates([]))
-  }, [calYear, calMonth, selectedTherapy, prevSessionStart])
+  }, [calYear, calMonth, selectedTherapy, prevSessionStart, tzOffset])
 
   useEffect(() => {
     if (!selectedDate || !selectedTherapy) return
@@ -125,7 +126,7 @@ export default function BookPage() {
     const load = async () => {
       setSelectedTime(null)
       setSlotsLoading(true)
-      const params = new URLSearchParams({ date: selectedDate, therapyId: selectedTherapy })
+      const params = new URLSearchParams({ date: selectedDate, therapyId: selectedTherapy, tzOffset })
       if (prevSessionStart) params.set("after", prevSessionStart)
       try {
         const res = await fetch(`/api/availability?${params}`)
