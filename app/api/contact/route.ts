@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { sendEmail } from '@/emails'
+import { sendEmail, notifyAdmin } from '@/emails'
 import { escapeHtml } from '@/lib/escape'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { contactMessages } from '@/lib/db/schema'
@@ -48,8 +48,7 @@ export async function POST(req: Request) {
       </div>
     `
 
-    await sendEmail(
-      'guillermoahrens@gmail.com',
+    notifyAdmin(
       subject ? `📩 ${subject} — ${name}` : `📩 Nuevo mensaje de ${name}`,
       html
     )
