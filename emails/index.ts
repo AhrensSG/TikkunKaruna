@@ -1,6 +1,7 @@
 import sgMail from '@sendgrid/mail'
 import pool from "@/lib/db"
 import { escapeHtml } from "@/lib/escape"
+import { welcomeHtml as _welcomeHtml, adminNewUserStyledHtml, adminNewBookingStyledHtml } from './templates'
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
 
@@ -21,6 +22,10 @@ export async function sendEmail(to: string, subject: string, html: string) {
   }
 }
 
+export async function sendWelcomeEmail(email: string, name: string) {
+  await sendEmail(email, `✨ Bienvenida a TikkunKaruna, ${name}`, _welcomeHtml(name))
+}
+
 export async function notifyAdmin(subject: string, html: string) {
   try {
     const { rows } = await pool.query(
@@ -34,35 +39,11 @@ export async function notifyAdmin(subject: string, html: string) {
 }
 
 export function adminNewUserHtml(name: string, email: string): string {
-  const now = new Date().toLocaleDateString("es-ES", {
-    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-  })
-  return `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-      <h2 style="color:#4a1a5e;">👤 Nuevo usuario registrado</h2>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Nombre</td><td style="padding:8px 12px;">${escapeHtml(name)}</td></tr>
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Email</td><td style="padding:8px 12px;">${escapeHtml(email)}</td></tr>
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Fecha</td><td style="padding:8px 12px;">${now}</td></tr>
-      </table>
-      <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-      <p style="color:#999;font-size:12px;">TikkunKaruna — Panel de Administración</p>
-    </div>`
+  return adminNewUserStyledHtml(name, email)
 }
 
 export function adminNewBookingHtml(userName: string, userEmail: string, therapyName: string, dateStr: string): string {
-  return `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-      <h2 style="color:#4a1a5e;">📅 Nueva reserva recibida</h2>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Cliente</td><td style="padding:8px 12px;">${escapeHtml(userName)}</td></tr>
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Email</td><td style="padding:8px 12px;">${escapeHtml(userEmail)}</td></tr>
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Terapia</td><td style="padding:8px 12px;">${escapeHtml(therapyName)}</td></tr>
-        <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Fecha y hora</td><td style="padding:8px 12px;">${dateStr}</td></tr>
-      </table>
-      <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-      <p style="color:#999;font-size:12px;">TikkunKaruna — Panel de Administración</p>
-    </div>`
+  return adminNewBookingStyledHtml(userName, userEmail, therapyName, dateStr)
 }
 
 export function sessionCompletedHtml(userName: string, therapyName: string, notes: string): string {

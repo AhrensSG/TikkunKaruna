@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { hashPassword } from '@/lib/auth'
-import { notifyAdmin, adminNewUserHtml } from '@/emails'
+import { sendEmail, notifyAdmin, adminNewUserHtml, sendWelcomeEmail } from '@/emails'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { eq } from 'drizzle-orm'
 
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       `👤 Nuevo registro: ${user.name}`,
       adminNewUserHtml(user.name, user.email)
     )
+    sendWelcomeEmail(user.email, user.name)
     return NextResponse.json({ user }, { status: 201 })
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Error desconocido'

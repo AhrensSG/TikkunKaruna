@@ -99,3 +99,64 @@ export function reminderHtml(details: BookingDetails): string {
   `
   return baseHtml(content, `Recordatorio — ${escapeHtml(details.therapyName)}`)
 }
+
+export function welcomeHtml(userName: string): string {
+  const content = `
+    <h2 style="color:#4a1a5e;margin:0 0 8px 0;font-size:20px;">¡Bienvenida a TikkunKaruna! ✨</h2>
+    <p style="color:#555;margin:0 0 4px 0;font-size:14px;">Hola <strong>${escapeHtml(userName)}</strong>,</p>
+    <p style="color:#555;margin:0 0 16px 0;font-size:14px;">Gracias por registrarte. Tu camino hacia el bienestar comienza aquí.</p>
+    <div style="background:#f3e5f5;border-left:4px solid #7b1fa2;padding:16px;margin:16px 0;border-radius:4px;">
+      <p style="margin:0 0 8px 0;color:#4a1a5e;font-weight:600;font-size:14px;">💜 ¿Qué puedes hacer ahora?</p>
+      <ul style="margin:0;padding-left:18px;color:#555;font-size:13px;line-height:1.8;">
+        <li>Explorar las <strong>terapias disponibles</strong> y elegir la que mejor se adapte a ti</li>
+        <li>Reservar tu <strong>primera sesión</strong> en solo unos clics</li>
+        <li>Acceder a tu <strong>panel personal</strong> para gestionar tus citas</li>
+      </ul>
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="https://tikkunkaruna.com/terapias" style="display:inline-block;background:linear-gradient(135deg,#4a1a5e,#7b2d8e);color:#fff;text-decoration:none;padding:12px 28px;border-radius:24px;font-size:14px;font-weight:600;">Ver terapias disponibles</a>
+    </div>
+    <p style="color:#888;font-size:12px;margin:16px 0 0 0;">Estas sesiones no sustituyen procesos médicos ni la atención de profesionales de la salud; se trabaja exclusivamente en el campo energético de las personas como complemento al bienestar personal.</p>
+  `
+  return baseHtml(content, 'Bienvenida a TikkunKaruna')
+}
+
+export function adminNewUserStyledHtml(userName: string, userEmail: string): string {
+  const now = new Date().toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  })
+  const content = `
+    <h2 style="color:#4a1a5e;margin:0 0 8px 0;font-size:20px;">👤 Nuevo registro</h2>
+    <p style="color:#555;margin:0 0 16px 0;font-size:14px;">Se ha registrado un nuevo usuario en la plataforma.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;width:100px;">Nombre</td>
+          <td style="padding:8px 12px;">${escapeHtml(userName)}</td></tr>
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Email</td>
+          <td style="padding:8px 12px;">${escapeHtml(userEmail)}</td></tr>
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Fecha</td>
+          <td style="padding:8px 12px;">${now}</td></tr>
+    </table>
+  `
+  return baseHtml(content, `Nuevo registro — ${escapeHtml(userName)}`)
+}
+
+export function adminNewBookingStyledHtml(userName: string, userEmail: string, therapyName: string, dateStr: string): string {
+  const content = `
+    <h2 style="color:#4a1a5e;margin:0 0 8px 0;font-size:20px;">📅 Nueva reserva</h2>
+    <p style="color:#555;margin:0 0 16px 0;font-size:14px;">Se ha recibido una nueva reserva en la plataforma.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;width:100px;">Cliente</td>
+          <td style="padding:8px 12px;">${escapeHtml(userName)}</td></tr>
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Email</td>
+          <td style="padding:8px 12px;">${escapeHtml(userEmail)}</td></tr>
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Terapia</td>
+          <td style="padding:8px 12px;">${escapeHtml(therapyName)}</td></tr>
+      <tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;">Fecha y hora</td>
+          <td style="padding:8px 12px;">${dateStr}</td></tr>
+    </table>
+    <div style="text-align:center;margin:16px 0 0 0;">
+      <a href="https://tikkunkaruna.com/admin/bookings" style="display:inline-block;background:linear-gradient(135deg,#4a1a5e,#7b2d8e);color:#fff;text-decoration:none;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:600;">Ver panel de administración</a>
+    </div>
+  `
+  return baseHtml(content, `Nueva reserva — ${escapeHtml(userName)}`)
+}
