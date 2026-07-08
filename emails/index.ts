@@ -29,10 +29,11 @@ export async function sendWelcomeEmail(email: string, name: string) {
 export async function notifyAdmin(subject: string, html: string) {
   try {
     const { rows } = await pool.query(
-      `SELECT email FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1`
+      `SELECT email FROM users WHERE role = 'admin'`
     )
-    if (rows.length === 0) return
-    await sendEmail(rows[0].email, subject, html)
+    for (const row of rows) {
+      await sendEmail(row.email, subject, html)
+    }
   } catch (err) {
     console.error("[notifyAdmin]", err)
   }
