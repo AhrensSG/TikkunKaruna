@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { bookings, bookingSessions } from "@/lib/db/schema"
 import { eq, and, sql } from "drizzle-orm"
+import { checkOverlap, checkBlockedTime } from "@/lib/overlap"
+import { MIN_HOURS_FROM_NOW, MIN_HOURS_BETWEEN_SESSIONS } from "@/lib/constants"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin()
@@ -53,7 +55,41 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       : b.duration_minutes
     const newEnd = new Date(newStart.getTime() + perSessionDuration * 60000)
 
+    const now = new Date()
+    const hoursFromNow = (newStart.getTime() - now.getTime()) / 3_600_000
+    if (hoursFromNow < MIN_HOURS_FROM_NOW) {
+      return NextResponse.json({ error: `La sesión debe ser al menos ${MIN_HOURS_FROM_NOW}h después de ahora` }, { status: 400 })
+    }
+
+    const overlapError = await checkOverlap([{ start_time: newStart.toISOString() }], perSessionDuration, id)
+    if (overlapError) {
+      return NextResponse.json({ error: overlapError }, { status: 409 })
+    }
+
+    const blockedError = await checkBlockedTime(newStart, perSessionDuration)
+    if (blockedError) {
+      return NextResponse.json({ error: blockedError }, { status: 409 })
+    }
+
     if (session_id) {
+      const allSessions = await db.execute(sql`
+        SELECT id, session_number, start_time FROM booking_sessions
+        WHERE booking_id = ${id} ORDER BY session_number
+      `)
+      const otherSessions = (allSessions.rows as { id: string; session_number: number; start_time: string }[])
+        .filter((s) => s.id !== session_id)
+
+      for (const os of otherSessions) {
+        const osStart = new Date(os.start_time)
+        const diff = Math.abs((newStart.getTime() - osStart.getTime()) / 3_600_000)
+        if (diff < MIN_HOURS_BETWEEN_SESSIONS) {
+          return NextResponse.json(
+            { error: `Debe haber al menos ${MIN_HOURS_BETWEEN_SESSIONS}h entre sesiones. Conflicto con la sesión ${os.session_number}.` },
+            { status: 400 }
+          )
+        }
+      }
+
       const sessionResult = await db.update(bookingSessions)
         .set({ startTime: newStart, endTime: newEnd })
         .where(and(eq(bookingSessions.id, session_id), eq(bookingSessions.bookingId, id)))

@@ -55,17 +55,22 @@ export async function checkBlockedTime(
 export async function checkOverlap(
   sessions: { start_time: string }[],
   durationMinutes: number,
+  excludeBookingId?: string,
 ): Promise<string | null> {
   for (const s of sessions) {
     const sStart = new Date(s.start_time)
     const sEnd = new Date(sStart.getTime() + durationMinutes * 60_000)
+
+    const bookingCond = excludeBookingId
+      ? and(eq(bookings.status, 'confirmed'), sql`${bookings.id} != ${excludeBookingId}`)
+      : eq(bookings.status, 'confirmed')
 
     const [booking] = await db
       .select({ id: bookings.id })
       .from(bookings)
       .where(
         and(
-          eq(bookings.status, 'confirmed'),
+          bookingCond,
           sql`tstzrange(${bookings.startTime}, ${bookings.endTime}) &&
               tstzrange(
                 ${sStart.toISOString()}::timestamptz - (${String(BUFFER_MINUTES)} || ' minutes')::interval,
@@ -82,14 +87,17 @@ export async function checkOverlap(
       return `El horario ${d} ya está reservado. Elegí otro.`
     }
 
+    const sessionBookingCond = excludeBookingId
+      ? and(eq(bookingSessions.status, 'confirmed'), eq(bookings.status, 'confirmed'), sql`${bookings.id} != ${excludeBookingId}`)
+      : and(eq(bookingSessions.status, 'confirmed'), eq(bookings.status, 'confirmed'))
+
     const [session] = await db
       .select({ id: bookingSessions.id })
       .from(bookingSessions)
       .innerJoin(bookings, eq(bookingSessions.bookingId, bookings.id))
       .where(
         and(
-          eq(bookingSessions.status, 'confirmed'),
-          eq(bookings.status, 'confirmed'),
+          sessionBookingCond,
           sql`tstzrange(${bookingSessions.startTime}, ${bookingSessions.endTime}) &&
               tstzrange(
                 ${sStart.toISOString()}::timestamptz - (${String(BUFFER_MINUTES)} || ' minutes')::interval,

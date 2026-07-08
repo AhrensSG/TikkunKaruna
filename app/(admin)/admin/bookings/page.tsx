@@ -68,13 +68,23 @@ export default function AdminBookingsPage() {
       .catch(() => setLoading(false))
   }, [])
 
+  const rescheduleAfter = useMemo(() => {
+    if (!rescheduling?.is_pack || !selectedSession) return null
+    const sessions = rescheduling.sessions || []
+    const idx = sessions.findIndex((s) => s.id === selectedSession)
+    if (idx <= 0) return null
+    return new Date(sessions[idx - 1].start_time).toISOString()
+  }, [rescheduling, selectedSession])
+
   useEffect(() => {
     if (!rescheduling) return
-    fetch(`/api/availability/month?year=${rescheduleYear}&month=${rescheduleMonth}&therapyId=${rescheduling.therapy_id}`)
+    const params = new URLSearchParams({ year: String(rescheduleYear), month: String(rescheduleMonth), therapyId: rescheduling.therapy_id })
+    if (rescheduleAfter) params.set('after', rescheduleAfter)
+    fetch(`/api/availability/month?${params}`)
       .then((r) => r.json())
       .then((data) => setAvailableDates(data.dates || []))
       .catch(() => setAvailableDates([]))
-  }, [rescheduleYear, rescheduleMonth, rescheduling])
+  }, [rescheduleYear, rescheduleMonth, rescheduling, rescheduleAfter])
 
   useEffect(() => {
     if (!rescheduling || !rescheduleDate) return
@@ -82,7 +92,9 @@ export default function AdminBookingsPage() {
       setSelectedSlot('')
       setLoadingSlots(true)
       try {
-        const r = await fetch(`/api/availability?date=${rescheduleDate}&therapyId=${rescheduling.therapy_id}`)
+        const params = new URLSearchParams({ date: rescheduleDate, therapyId: rescheduling.therapy_id })
+        if (rescheduleAfter) params.set('after', rescheduleAfter)
+        const r = await fetch(`/api/availability?${params}`)
         const data = await r.json()
         setAvailableSlots(data.slots || [])
       } catch {
@@ -92,7 +104,7 @@ export default function AdminBookingsPage() {
       }
     }
     load()
-  }, [rescheduleDate, rescheduling])
+  }, [rescheduleDate, rescheduling, rescheduleAfter])
 
   const filtered = useMemo(() => {
     let result = bookings
