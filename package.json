@@ -10,6 +10,7 @@
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -22,7 +23,6 @@
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "resend": "^6.12.4",
     "stripe": "^22.1.1"
   },
   "devDependencies": {
