@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     canonical: BASE_URL,
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.png",
     apple: "/apple-icon.png",
   },
   other: {
