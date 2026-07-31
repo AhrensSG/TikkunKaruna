@@ -7,7 +7,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Sparkles, Clock, ArrowRight, Check, Loader2,
-  ArrowLeft, ShieldCheck, Video, ListChecks, Package,
+  ArrowLeft, ShieldCheck, Video, ListChecks, Package, CircleCheck,
 } from "lucide-react"
 import Calendar from "@/components/Calendar"
 import TermsCheckbox from "@/components/TermsCheckbox"
@@ -21,6 +21,7 @@ interface Therapy {
   image_url: string
   video_url: string
   requirements: string[]
+  is_full: boolean
   is_pack: boolean
   session_count: number | null
   session_duration_minutes: number | null
@@ -182,6 +183,100 @@ export default function ReservarPage() {
         <Link href="/terapias" className="text-purple-600 hover:text-purple-700 text-sm font-medium">
           ← Ver todas las terapias
         </Link>
+      </div>
+    )
+  }
+
+  if (therapy.is_full) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white pt-24">
+        <div className="max-w-5xl mx-auto px-4">
+          <Link
+            href="/terapias"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Volver a terapias
+          </Link>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            {/* Left: Therapy detail */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden sticky top-24">
+                {therapy.image_url && (
+                  <div className="relative w-full h-48 overflow-hidden">
+                    <Image src={therapy.image_url} alt={therapy.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 40vw" />
+                  </div>
+                )}
+                <div className="p-6 space-y-5">
+                  <div>
+                    <h1 className="font-heading text-2xl text-purple-950 mb-3">{therapy.name}</h1>
+                    <p className="text-purple-700 text-sm leading-relaxed">{therapy.description}</p>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-purple-500">
+                      <Clock size={15} />
+                      {therapy.duration_minutes >= 60
+                        ? `${Math.floor(therapy.duration_minutes / 60)}h ${therapy.duration_minutes % 60 || ""}`
+                        : `${therapy.duration_minutes} min`}
+                    </div>
+                    <span className="text-purple-200">|</span>
+                    <span className="text-xl text-purple-700 font-semibold">
+                      {therapy.price_cents / 100} €
+                    </span>
+                  </div>
+
+                  {therapy.requirements && therapy.requirements.length > 0 && (
+                    <div>
+                      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-purple-900 mb-2">
+                        <ListChecks size={15} className="text-gold-500" />
+                        Requisitos / Condiciones
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {therapy.requirements.map((req, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-purple-600">
+                            <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-gold-400 flex-shrink-0" />
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Full notice */}
+            <div className="lg:col-span-3">
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
+                  <CircleCheck size={30} className="text-amber-600" />
+                </div>
+                <h2 className="font-heading text-2xl text-purple-950 mb-3">Terapia completa</h2>
+                <p className="text-purple-700 text-sm leading-relaxed max-w-md mx-auto mb-6">
+                  Esta terapia ya no admite más reservas por el momento. Puedes explorar
+                  otras terapias disponibles o contactar con nosotros para más información.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link
+                    href="/terapias"
+                    className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-6 py-3 rounded-xl transition-colors"
+                  >
+                    <Sparkles size={15} />
+                    Ver otras terapias
+                  </Link>
+                  <Link
+                    href="/contacto"
+                    className="inline-flex items-center justify-center gap-2 border border-purple-200 text-purple-700 hover:bg-purple-50 text-sm font-medium px-6 py-3 rounded-xl transition-colors"
+                  >
+                    Contactar
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

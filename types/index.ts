@@ -17,6 +17,7 @@ export interface Therapy {
   image_url: string
   video_url: string
   is_active: boolean
+  is_full: boolean
   sort_order: number
   requirements?: string[]
   created_at: string

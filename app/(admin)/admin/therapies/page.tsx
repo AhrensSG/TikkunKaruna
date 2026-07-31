@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Pencil, Trash2, EyeOff, Sparkles, Search, X, Package } from 'lucide-react'
+import { Plus, Pencil, Trash2, EyeOff, Sparkles, Search, X, Package, CircleCheck } from 'lucide-react'
 import type { Therapy } from '@/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
@@ -101,6 +101,23 @@ export default function TherapiesPage() {
       if (res.ok) {
         setTherapies((prev) =>
           prev.map((t) => (t.id === id ? { ...t, is_active: !current } : t))
+        )
+      }
+    } catch {
+      alert('Error al cambiar el estado')
+    }
+  }
+
+  const handleToggleFull = async (id: string, current: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/therapies/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_full: !current }),
+      })
+      if (res.ok) {
+        setTherapies((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, is_full: !current } : t))
         )
       }
     } catch {
@@ -234,6 +251,12 @@ export default function TherapiesPage() {
                       Inactiva
                     </span>
                   )}
+                  {therapy.is_full && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                      <CircleCheck size={12} />
+                      Completa
+                    </span>
+                  )}
                   {therapy.is_pack && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
                       <Package size={12} />
@@ -278,6 +301,23 @@ export default function TherapiesPage() {
                   }`}
                 />
               </button>
+
+              <button
+                onClick={() => handleToggleFull(therapy.id, therapy.is_full)}
+                title={therapy.is_full ? 'Completa: no se puede contratar' : 'Marcar como completa'}
+                className={`relative inline-flex h-6 w-9 sm:w-10 items-center rounded-full transition-colors shrink-0 ${
+                  therapy.is_full ? 'bg-amber-400' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                    therapy.is_full ? 'translate-x-4 sm:translate-x-5' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="hidden lg:inline text-xs text-amber-600">
+                {therapy.is_full ? 'Completa' : 'Libre'}
+              </span>
 
               {therapy.video_url && (
                 <span className="hidden sm:inline text-xs text-gray-400 mr-1">🎬</span>

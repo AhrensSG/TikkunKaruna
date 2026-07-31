@@ -10,7 +10,7 @@ export async function GET() {
     const rows = await db.execute(sql`
       SELECT t.id, t.name, t.description,
              t.duration_minutes, t.price_cents, t.image_url, t.video_url,
-             t.is_pack, t.session_count, t.session_duration_minutes,
+             t.is_active, t.is_full, t.is_pack, t.session_count, t.session_duration_minutes,
              COALESCE(json_agg(tr.description ORDER BY tr.sort_order) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
       FROM therapies t
       LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id

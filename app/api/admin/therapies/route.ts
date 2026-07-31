@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
+    const { name, description, duration_minutes, price_cents, is_active, is_full, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
 
     if (!name || !duration_minutes || !price_cents) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
@@ -46,6 +46,7 @@ export async function POST(req: Request) {
       durationMinutes: duration_minutes,
       priceCents: price_cents,
       isActive: is_active ?? true,
+      isFull: is_full ?? false,
       imageUrl: image_url || '',
       videoUrl: video_url || '',
       isPack: is_pack ?? false,

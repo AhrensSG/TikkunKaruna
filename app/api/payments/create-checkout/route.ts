@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     }
 
     const therapyResult = await db.execute(sql`
-      SELECT id, name, price_cents, duration_minutes, is_pack, session_count, session_duration_minutes
+      SELECT id, name, price_cents, duration_minutes, is_pack, is_full, session_count, session_duration_minutes
       FROM therapies WHERE id = ${therapyId} AND is_active = true AND deleted_at IS NULL
     `)
 
@@ -32,7 +32,14 @@ export async function POST(req: Request) {
 
     const therapy = therapyResult.rows[0] as {
       id: string; name: string; price_cents: number; duration_minutes: number;
-      is_pack: boolean; session_count: number | null; session_duration_minutes: number | null;
+      is_pack: boolean; is_full: boolean; session_count: number | null; session_duration_minutes: number | null;
+    }
+
+    if (therapy.is_full) {
+      return NextResponse.json(
+        { error: 'Esta terapia está completa y no admite nuevas reservas por el momento' },
+        { status: 409 }
+      )
     }
     const perSessionDuration = getEffectiveDuration(therapy)
 

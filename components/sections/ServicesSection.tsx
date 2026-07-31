@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
-  Clock, ArrowRight, Package,
+  Clock, ArrowRight, Package, CircleCheck,
 } from "lucide-react";
 import pool from "@/lib/db";
 
@@ -21,6 +21,7 @@ interface TherapyRow {
   duration_minutes: number
   price_cents: number
   image_url: string
+  is_full: boolean
   is_pack: boolean
   session_count: number | null
   session_duration_minutes: number | null
@@ -42,7 +43,7 @@ export default async function ServicesSection() {
   try {
     const result = await pool.query(
       `SELECT id, name, description, duration_minutes, price_cents, image_url,
-              is_pack, session_count, session_duration_minutes
+              is_full, is_pack, session_count, session_duration_minutes
        FROM therapies WHERE id = ANY($1) AND is_active = true AND deleted_at IS NULL`,
       [ids]
     )
@@ -51,7 +52,8 @@ export default async function ServicesSection() {
     }
   } catch {
     const result = await pool.query(
-      `SELECT id, name, description, duration_minutes, price_cents, image_url
+      `SELECT id, name, description, duration_minutes, price_cents, image_url,
+              is_full
        FROM therapies WHERE id = ANY($1) AND is_active = true`,
       [ids]
     )
@@ -77,6 +79,7 @@ export default async function ServicesSection() {
         : '',
       price: t ? `${(t.price_cents / 100).toFixed(0)} €` : '',
       image_url: t?.image_url ?? '',
+      isFull: t?.is_full ?? false,
       isPack: t?.is_pack ?? false,
       sessionCount: t?.session_count ?? null,
       sessionDuration: t?.session_duration_minutes ?? null,
@@ -104,7 +107,7 @@ export default async function ServicesSection() {
 
         {/* Service cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {services.map(({ Icon, id, name, shortDesc, duration, price, tag, image_url, isPack, sessionCount, sessionDuration }) => (
+          {services.map(({ Icon, id, name, shortDesc, duration, price, tag, image_url, isFull, isPack, sessionCount, sessionDuration }) => (
             <div
               key={name}
               className="group relative flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
@@ -124,6 +127,12 @@ export default async function ServicesSection() {
               )}
 
               <div className="p-7 pt-5">
+                {isFull && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 mb-3">
+                    <CircleCheck size={11} />
+                    Completa · No disponible
+                  </span>
+                )}
                 {isPack && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 mb-3">
                     <Package size={11} />
@@ -150,13 +159,20 @@ export default async function ServicesSection() {
                 </div>
 
                 {/* CTA */}
-                <Link
-                  href={`/reservar/${id}`}
-                  className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300 group-hover:shadow-md"
-                >
-                  {isPack ? 'Reservar pack' : 'Reservar sesión'}
-                  <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-                </Link>
+                {isFull ? (
+                  <span className="inline-flex items-center justify-center gap-2 bg-amber-50 text-amber-700 text-sm font-semibold py-2.5 px-5 rounded-full cursor-default">
+                    <CircleCheck size={14} />
+                    Terapia completa
+                  </span>
+                ) : (
+                  <Link
+                    href={`/reservar/${id}`}
+                    className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300 group-hover:shadow-md"
+                  >
+                    {isPack ? 'Reservar pack' : 'Reservar sesión'}
+                    <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </Link>
+                )}
               </div>
             </div>
           ))}

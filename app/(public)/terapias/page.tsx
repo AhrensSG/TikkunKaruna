@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Flower2, Zap, TreePine, Moon, Waves, Sun,
-  Clock, ArrowRight, CalendarCheck, ListChecks, Package,
+  Clock, ArrowRight, CalendarCheck, ListChecks, Package, CircleCheck,
 } from "lucide-react";
 import pool from "@/lib/db";
 import { formatDuration } from "@/lib/format";
@@ -26,6 +26,7 @@ interface TherapyRow {
   price_cents: number
   image_url: string
   requirements: string[]
+  is_full: boolean
   is_pack: boolean
   session_count: number | null
   session_duration_minutes: number | null
@@ -36,7 +37,7 @@ export default async function TerapiasPage() {
   try {
     const result = await pool.query(
       `SELECT t.id, t.name, t.description, t.duration_minutes, t.price_cents, t.image_url,
-              t.is_pack, t.session_count, t.session_duration_minutes,
+              t.is_full, t.is_pack, t.session_count, t.session_duration_minutes,
               COALESCE(json_agg(tr.description ORDER BY tr.sort_order) FILTER (WHERE tr.description IS NOT NULL), '[]') AS requirements
        FROM therapies t
        LEFT JOIN therapy_requirements tr ON tr.therapy_id = t.id
@@ -55,7 +56,7 @@ export default async function TerapiasPage() {
         GROUP BY t.id
        ORDER BY t.sort_order ASC, t.created_at ASC`
     )
-    therapies = result.rows.map((t: TherapyRow) => ({ ...t, is_pack: false, session_count: null, session_duration_minutes: null }))
+    therapies = result.rows.map((t: TherapyRow) => ({ ...t, is_full: false, is_pack: false, session_count: null, session_duration_minutes: null }))
   }
 
   const services = therapies.map((t, i) => ({
@@ -68,6 +69,7 @@ export default async function TerapiasPage() {
     tag: i === 0 ? 'Nueva' : null,
     image_url: t.image_url,
     requirements: t.requirements || [],
+    isFull: t.is_full,
     isPack: t.is_pack,
     sessionCount: t.session_count,
     sessionDuration: t.session_duration_minutes,
@@ -99,7 +101,7 @@ export default async function TerapiasPage() {
       <section className="py-20 bg-cream-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map(({ Icon, id, name, fullDesc, duration, price, tag, image_url, requirements, isPack, sessionCount, sessionDuration }) => (
+            {services.map(({ Icon, id, name, fullDesc, duration, price, tag, image_url, requirements, isFull, isPack, sessionCount, sessionDuration }) => (
               <div
                 key={name}
                 className="group flex flex-col bg-white border border-purple-100 rounded-2xl overflow-hidden hover:border-gold-300 hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 transition-all duration-300"
@@ -123,6 +125,12 @@ export default async function TerapiasPage() {
                 )}
 
                 <div className="flex flex-col flex-1 p-5 pt-4">
+                  {isFull && (
+                    <span className="inline-flex items-center gap-1 self-start px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 mb-2">
+                      <CircleCheck size={11} />
+                      Completa · No disponible
+                    </span>
+                  )}
                   {isPack && (
                     <span className="inline-flex items-center gap-1 self-start px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 mb-2">
                       <Package size={11} />
@@ -174,14 +182,21 @@ export default async function TerapiasPage() {
                   </p>
 
                   {/* CTA */}
-                  <Link
-                    href={`/reservar/${id}`}
-                    className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300"
-                  >
-                    <CalendarCheck size={14} />
-                    {isPack ? 'Reservar pack' : 'Reservar sesión'}
-                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-                  </Link>
+                  {isFull ? (
+                    <span className="inline-flex items-center justify-center gap-2 bg-amber-50 text-amber-700 text-sm font-semibold py-2.5 px-5 rounded-full cursor-default">
+                      <CircleCheck size={14} />
+                      Terapia completa
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/reservar/${id}`}
+                      className="inline-flex items-center justify-center gap-2 bg-purple-50 hover:bg-gold-500 text-purple-700 hover:text-purple-950 text-sm font-semibold py-2.5 px-5 rounded-full transition-all duration-300"
+                    >
+                      <CalendarCheck size={14} />
+                      {isPack ? 'Reservar pack' : 'Reservar sesión'}
+                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

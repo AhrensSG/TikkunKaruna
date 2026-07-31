@@ -15,6 +15,7 @@ export default function NewTherapyPage() {
   const [duration_minutes, setDurationMinutes] = useState('60')
   const [price_euros, setPriceEuros] = useState('50')
   const [is_active, setIsActive] = useState(true)
+  const [is_full, setIsFull] = useState(false)
   const [image_url, setImageUrl] = useState('')
   const [video_url, setVideoUrl] = useState('')
   const [requirements, setRequirements] = useState<string[]>([''])
@@ -37,6 +38,7 @@ export default function NewTherapyPage() {
         duration_minutes: is_pack ? (parseInt(session_count) || 1) * (parseInt(session_duration_minutes) || 60) : (parseInt(duration_minutes) || 0),
         price_cents: Math.round((parseFloat(price_euros) || 0) * 100),
         is_active,
+        is_full,
         image_url,
         video_url,
         requirements: filteredReqs,
@@ -141,6 +143,19 @@ export default function NewTherapyPage() {
               <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:bg-purple-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
             <span className="text-sm text-gray-700">Terapia activa</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={is_full}
+                onChange={(e) => setIsFull(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:bg-amber-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+            </label>
+            <span className="text-sm text-gray-700">Terapia completa (no se puede contratar)</span>
           </div>
 
           <div className="border-t border-gray-100 pt-4">

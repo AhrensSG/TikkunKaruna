@@ -23,6 +23,7 @@ export const therapies = pgTable('therapies', {
   durationMinutes: integer('duration_minutes').notNull(),
   priceCents: integer('price_cents').notNull(),
   isActive: boolean('is_active').notNull().default(true),
+  isFull: boolean('is_full').notNull().default(false),
   imageUrl: text('image_url').default(''),
   videoUrl: text('video_url').default(''),
   sortOrder: integer('sort_order').default(0),

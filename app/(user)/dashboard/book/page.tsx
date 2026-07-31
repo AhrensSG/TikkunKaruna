@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import {
   Sparkles, Clock, Euro, ArrowRight, Check, Loader2,
   ChevronLeft, CreditCard, ShieldCheck, CalendarDays,
-  Info, Search, ListChecks, Package,
+  Info, Search, ListChecks, Package, CircleCheck,
 } from "lucide-react"
 import Image from "next/image"
 import Calendar from "@/components/Calendar"
@@ -20,6 +20,7 @@ interface Therapy {
   price_cents: number
   image_url: string
   requirements: string[]
+  is_full: boolean
   is_pack: boolean
   session_count: number | null
   session_duration_minutes: number | null
@@ -143,6 +144,8 @@ export default function BookPage() {
 
   const handleNext = () => {
     if (step === 1 && selectedTherapy) {
+      const _therapy = therapies.find((t) => t.id === selectedTherapy)
+      if (_therapy?.is_full) return
       if (therapy?.is_pack && therapy.session_count) {
         setPackSessions(Array.from({ length: therapy.session_count }, () => ({ date: null, time: null })))
         setPackSessionIndex(0)
@@ -285,6 +288,12 @@ export default function BookPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-gray-900">{t.name}</h3>
                         {isSelected && <Check size={14} className="text-purple-600 shrink-0" />}
+                        {t.is_full && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0">
+                            <CircleCheck size={11} />
+                            Completa
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{t.description}</p>
                     </div>
@@ -326,12 +335,21 @@ export default function BookPage() {
                         </div>
                       )}
 
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleNext() }}
-                        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-3 rounded-xl transition-all"
-                      >
-                        Continuar con {t.name} <ArrowRight size={15} />
-                      </button>
+                      {t.is_full ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-2 text-sm text-amber-800">
+                          <CircleCheck size={16} className="shrink-0 mt-0.5" />
+                          <p>
+                            Esta terapia está <strong>completa</strong> y no admite más reservas por el momento.
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleNext() }}
+                          className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-3 rounded-xl transition-all"
+                        >
+                          Continuar con {t.name} <ArrowRight size={15} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

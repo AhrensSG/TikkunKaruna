@@ -40,7 +40,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const { id } = await params
-    const { name, description, duration_minutes, price_cents, is_active, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
+    const { name, description, duration_minutes, price_cents, is_active, is_full, image_url, video_url, requirements, is_pack, session_count, session_duration_minutes } = await req.json()
 
     const result = await db.update(therapies)
       .set({
@@ -49,6 +49,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         durationMinutes: duration_minutes,
         priceCents: price_cents,
         isActive: is_active ?? true,
+        isFull: is_full ?? false,
         imageUrl: image_url || '',
         videoUrl: video_url || '',
         isPack: is_pack ?? false,
@@ -92,12 +93,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   try {
     const { id } = await params
-    const { is_active, sort_order, restore } = await req.json()
+    const { is_active, is_full, sort_order, restore } = await req.json()
 
     const updateData: Record<string, unknown> = {}
 
     if (typeof is_active === 'boolean') {
       updateData.isActive = is_active
+    }
+    if (typeof is_full === 'boolean') {
+      updateData.isFull = is_full
     }
     if (typeof sort_order === 'number') {
       updateData.sortOrder = sort_order
